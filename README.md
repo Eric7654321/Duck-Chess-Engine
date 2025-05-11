@@ -1,6 +1,6 @@
 # Duck-Chess-Engine
 113-2人工智慧概論期末專題，有關於西洋棋變種之鴨子棋的引擎
-<br>
+<br><br>
 <img src="https://github.com/user-attachments/assets/b2cfd548-0cea-4844-ad31-40532f032cfc" height="200px" width="400px" >
 
 ### 什麼是鴨子棋
