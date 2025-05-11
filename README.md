@@ -27,4 +27,4 @@ duck-chess-engine/
 ```
 
 ### 參考
-來自這位兄弟的原版西洋棋引擎:(<[https://www.chess.com/terms/duck-chess](https://github.com/mikolaj-skrzypczak/chess-engine.git)> "Title")
+來自這位兄弟的原版西洋棋引擎:[chess-engine](<https://github.com/mikolaj-skrzypczak/chess-engine.git)> "Title")
