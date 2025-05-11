@@ -77,7 +77,7 @@ piece_position_scores["DD"] = duck_scores
 
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 3
+DEPTH = 7
 
 
 def findBestMove(game_state, valid_moves, return_queue):
