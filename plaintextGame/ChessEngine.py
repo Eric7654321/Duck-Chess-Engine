@@ -435,31 +435,36 @@ class GameState:
         return False
 
     def isPathBlockedByDuck(self, start_row, start_col, end_row, end_col):
-        """Check if the path between two squares is blocked by the duck"""
+        """檢查起點和終點之間的路徑是否被鴨子阻擋"""
+        # 如果起點和終點相同，直接返回False
         if start_row == end_row and start_col == end_col:
             return False
 
+        # 計算行和列的步進方向
         dr = end_row - start_row
         dc = end_col - start_col
-        step_count = max(abs(dr), abs(dc))
 
-        if step_count == 0:
+        # 計算步數（取行和列差值的最大值）
+        steps = max(abs(dr), abs(dc))
+
+        # 如果只有一步距離，不需要檢查路徑
+        if steps <= 1:
             return False
 
-        dr_step = dr / step_count
-        dc_step = dc / step_count
+        # 計算每一步的行列變化
+        row_step = dr / steps
+        col_step = dc / steps
 
-        for step in range(1, step_count):
-            check_row = int(start_row + dr_step * step)
-            check_col = int(start_col + dc_step * step)
+        # 檢查路徑上的每個格子
+        for step in range(1, steps):
+            check_row = int(start_row + row_step * step)
+            check_col = int(start_col + col_step * step)
             if (check_row, check_col) == self.duck_location:
                 return True
+
         return False
 
     def getAllPossibleMoves(self):
-        """
-        All moves without considering checks, but considering duck blocking
-        """
         moves = []
         for row in range(len(self.board)):
             for col in range(len(self.board[row])):
@@ -468,11 +473,10 @@ class GameState:
                     piece = self.board[row][col][1]
                     self.moveFunctions[piece](row, col, moves)
 
-        # Filter out moves that jump over or land on duck (except knights)
+        # 過濾被鴨子阻擋的移動
         valid_moves = []
         for move in moves:
-            piece_type = move.piece_moved[1]
-            if piece_type == "N":  # Knights can jump over duck
+            if move.piece_moved[1] == "N":  # 騎士可以跳過鴨子
                 if (move.end_row, move.end_col) != self.duck_location:
                     valid_moves.append(move)
             else:
@@ -643,39 +647,6 @@ class GameState:
                                 moves.append(
                                     Move((row, col), (end_row, capture_col), self.board, is_enpassant_move=True))
 
-    def isPathBlockedByDuck(self, start, end):
-        """Check if the path between start and end is blocked by duck (for straight/diagonal moves)"""
-        start_row, start_col = start
-        end_row, end_col = end
-
-        # Same square
-        if start_row == end_row and start_col == end_col:
-            return False
-
-        # Vertical move
-        if start_col == end_col:
-            step = 1 if end_row > start_row else -1
-            for row in range(start_row + step, end_row, step):
-                if (row, start_col) == self.duck_location:
-                    return True
-
-        # Horizontal move
-        elif start_row == end_row:
-            step = 1 if end_col > start_col else -1
-            for col in range(start_col + step, end_col, step):
-                if (start_row, col) == self.duck_location:
-                    return True
-
-        # Diagonal move
-        elif abs(end_row - start_row) == abs(end_col - start_col):
-            row_step = 1 if end_row > start_row else -1
-            col_step = 1 if end_col > start_col else -1
-            steps = abs(end_row - start_row)
-            for i in range(1, steps):
-                if (start_row + i * row_step, start_col + i * col_step) == self.duck_location:
-                    return True
-
-        return False
 
     def getRookMoves(self, row, col, moves):
         """
@@ -868,26 +839,20 @@ class GameState:
                 if not self.squareUnderAttack(row, col - 1) and not self.squareUnderAttack(row, col - 2):
                     moves.append(Move((row, col), (row, col - 2), self.board, is_castle_move=True))
 
-
     def getDuckMoves(self):
         """
         Get all possible duck moves.
-        Duck moves like a king but can't be captured and can't capture.
+        Duck can TELEPORT to any empty square on the board.
         """
         moves = []
-        row, col = self.duck_location
-        directions = [(-1, -1), (-1, 0), (-1, 1),
-                      (0, -1), (0, 1),
-                      (1, -1), (1, 0), (1, 1)]
+        current_row, current_col = self.duck_location
 
-        for dr, dc in directions:
-            end_row, end_col = row + dr, col + dc
-            if 0 <= end_row <= 7 and 0 <= end_col <= 7:
-                # Duck can move to any empty square or square occupied by any piece
-                # (but in practice it will push pieces away, depending on duck chess rules)
-                # Here we implement basic movement where duck just moves to empty squares
-                if self.board[end_row][end_col] == "--":
-                    moves.append(Move((row, col), (end_row, end_col), self.board, is_duck_move=True))
+        # Check every square on the board
+        for end_row in range(8):
+            for end_col in range(8):
+                # Can teleport to any empty square except current position
+                if self.board[end_row][end_col] == "--" and (end_row, end_col) != (current_row, current_col):
+                    moves.append(Move((current_row, current_col), (end_row, end_col), self.board, is_duck_move=True))
 
         return moves
 
