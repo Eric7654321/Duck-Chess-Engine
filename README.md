@@ -1,6 +1,10 @@
-# IntroToAI_DuckChessEngine
-113-2人工智慧概論期末專題，有關於鴨子棋引擎的設計
+# Duck-Chess-Engine
+113-2人工智慧概論期末專題，有關於西洋棋變種之鴨子棋的引擎
+<br><br>
+<img src="https://github.com/user-attachments/assets/b2cfd548-0cea-4844-ad31-40532f032cfc" height="200px" width="400px" >
 
+### 什麼是鴨子棋
+可參考這個網址：[什麼是鴨子棋](<https://www.chess.com/terms/duck-chess> "Title")
 ## 架構
 ```bash
 duck-chess-engine/
