@@ -35,6 +35,7 @@ duck-chess-engine/
 1. 鴨子開場會直接擺在e4，嚴重歧視王兵玩家
 2. 理論上鴨子棋沒有將死一說，勝利條件只有把對面的王吃掉，目前的遊戲結束邏輯仍然是判斷對面的王有沒有被將死，這部分需要更改
 3. AI實力有些薄弱，可能需要nerf玩家
+4. 若是故意攻擊AI並且拿鴨子擋著攻擊線路，AI會自己把鴨子拿走然後我們可以直接吃王
 
 ### 參考
 來自這位兄弟的原版西洋棋引擎: [chess-engine](<https://github.com/mikolaj-skrzypczak/chess-engine.git> "Title")
