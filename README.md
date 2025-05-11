@@ -25,3 +25,6 @@ duck-chess-engine/
 ├── requirements.txt
 └── README.md
 ```
+
+### 參考
+來自這位兄弟的原版西洋棋引擎:[chess-engine](<"https://github.com/mikolaj-skrzypczak/chess-engine/tree/master">)
