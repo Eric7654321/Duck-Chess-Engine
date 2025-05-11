@@ -22,7 +22,7 @@ duck-chess-engine/
 │   └── nnue_model.pth     # 預訓練模型檔
 ├── tests/
 │   └── test_engine.py
-├── plaintextGame/
+├── plaintextGame/         # pygame版本
 │   ├── images             # 棋類圖檔
 │   │   └── ...
 │   ├── ChessAI.py         # 遊戲AI實作
