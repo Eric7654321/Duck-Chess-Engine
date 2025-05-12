@@ -7,6 +7,7 @@ import pygame as p
 import ChessEngine, ChessAI
 import sys
 from multiprocessing import Process, Queue
+import os
 
 BOARD_WIDTH = BOARD_HEIGHT = 512
 MOVE_LOG_PANEL_WIDTH = 250
@@ -24,7 +25,7 @@ def loadImages():
     """
     pieces = ['wp', 'wR', 'wN', 'wB', 'wK', 'wQ', 'bp', 'bR', 'bN', 'bB', 'bK', 'bQ', 'DD']
     for piece in pieces:
-        IMAGES[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQUARE_SIZE, SQUARE_SIZE))
+        IMAGES[piece] = p.transform.scale(p.image.load(os.path.join("images/", ""+ piece + ".png")), (SQUARE_SIZE, SQUARE_SIZE))
 
 
 def main():
