@@ -5,7 +5,7 @@
 
 ### 什麼是鴨子棋
 可參考這個網址：[什麼是鴨子棋](<https://www.chess.com/terms/duck-chess> "Title")
-## 架構
+## 規劃架構
 ```bash
 duck-chess-engine/
 ├── engine/
