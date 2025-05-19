@@ -3,9 +3,22 @@ Handling the AI moves for Duck Chess.
 """
 import random
 import math
+import chess
+import chess.engine
+from ChessEngine import Move  # Added: import Move class to attach get_uci method
+import os
+
+# Added: Support Move.get_uci() for matching UCI strings
+def get_uci(self):
+    # Convert move to UCI format (e.g., e2e4)
+    return (self.cols_to_files[self.start_col] + self.rows_to_ranks[self.start_row] +
+            self.cols_to_files[self.end_col] + self.rows_to_ranks[self.end_row])
+Move.get_uci = get_uci
 
 # Piece values and position scores remain the same as before
 piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1, "D": 0}  # Duck has 0 value
+
+FAIRY_STOCKFISH_PATH = "fairy-stockfish.exe"
 
 knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
                  [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
@@ -77,7 +90,7 @@ piece_position_scores["DD"] = duck_scores
 
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 7
+DEPTH = 2
 
 
 def findBestMove(game_state, valid_moves, return_queue):
@@ -129,7 +142,8 @@ def findBestDuckMove(game_state, valid_duck_moves):
         enemy_color = 'b' if game_state.white_to_move else 'w'
 
         # Check if duck is blocking enemy pieces
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
+                      (-1, -1), (-1, 1), (1, -1), (1, 1)]
         for dr, dc in directions:
             for i in range(1, 8):
                 r, c = row + dr * i, col + dc * i
@@ -137,8 +151,14 @@ def findBestDuckMove(game_state, valid_duck_moves):
                     piece = game_state.board[r][c]
                     if piece == "--":
                         continue
-                    if piece[0] == enemy_color and piece[1] in ['Q', 'R', 'B']:
-                        blocking_score += 1  # bonus for blocking enemy sliding pieces
+                    if piece[0] == enemy_color:
+                        # Modified: weight blocking queen/rook higher
+                        if piece[1] == 'Q':
+                            blocking_score += 3  # high bonus for blocking enemy queen
+                        elif piece[1] == 'R':
+                            blocking_score += 2  # bonus for blocking enemy rook
+                        elif piece[1] == 'B':
+                            blocking_score += 1  # bonus for blocking enemy bishop
                     break
 
         # Penalize if blocking our own pieces
@@ -164,33 +184,69 @@ def findBestDuckMove(game_state, valid_duck_moves):
 
 
 def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_multiplier):
+    # Modified: integrate Stockfish move at root and ensure full move search
     """
     NegaMax algorithm with alpha-beta pruning for piece moves.
     """
     global next_move
-    if depth == 0:
-        return turn_multiplier * scoreBoard(game_state)
+    top_level = (depth == DEPTH)
+    # If at root depth, get Stockfish's recommended move first
+    if top_level:
+        try:
+            # Use Fairy-Stockfish to get best move in UCI
+            fen = convert_to_fen(game_state)
+            with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
+                engine.configure({"EvalFile": os.path.join("NNUE model", "NNUE model/duck-ba21f91f5d81.nnue")})
+                board = chess.Board(fen)
+                result = engine.play(board, chess.engine.Limit(time=0.5))
+                best_uci = result.move.uci()
+            # Find corresponding Move object in valid_moves
+            for move in valid_moves:
+                if move.get_uci() == best_uci:
+                    # Use this as next_move and evaluate one-ply deeper
+                    next_move = move  # prioritize Stockfish move
+                    game_state.makeMove(move)
+                    next_moves = game_state.getValidMoves()
+                    piece_moves = [m for m in next_moves if not m.is_duck_move]
+                    score = -findMoveNegaMaxAlphaBeta(game_state, piece_moves, depth - 1,
+                                                      -beta, -alpha, -turn_multiplier)
+                    game_state.undoMove()
+                    return score
+        except Exception as e:
+            # If engine fails, proceed with regular search
+            print(f"[DEBUG] Stockfish move not used due to error: {e}")
+            pass
 
-    max_score = -CHECKMATE
+    if depth == 0:
+        # Optionally combine Stockfish eval with positional eval
+        fs_score = evaluate_position_with_fairy_stockfish(game_state)
+        pos_score = scoreBoard(game_state)
+        # Weighted combination (80% Stockfish, 20% positional)
+        combined_score = (fs_score * 0.8 + pos_score * 0.2)
+        return turn_multiplier * combined_score
+
+    best_score = -CHECKMATE
+    best_move_local = None
     for move in valid_moves:
         game_state.makeMove(move)
         next_moves = game_state.getValidMoves()
-
         # Skip duck moves when evaluating board state
         piece_moves = [m for m in next_moves if not m.is_duck_move]
-
-        score = -findMoveNegaMaxAlphaBeta(game_state, piece_moves, depth - 1, -beta, -alpha, -turn_multiplier)
-
-        if score > max_score:
-            max_score = score
-            if depth == DEPTH:
-                next_move = move
+        score = -findMoveNegaMaxAlphaBeta(game_state, piece_moves,
+                                          depth - 1, -beta, -alpha, -turn_multiplier)
         game_state.undoMove()
-        if max_score > alpha:
-            alpha = max_score
+
+        if score > best_score:
+            best_score = score
+            best_move_local = move
+        if best_score > alpha:
+            alpha = best_score
         if alpha >= beta:
             break
-    return max_score
+
+    if top_level and best_move_local is not None:
+        next_move = best_move_local
+    return best_score
 
 
 def scoreBoard(game_state):
@@ -235,3 +291,57 @@ def findRandomMove(valid_moves):
     Picks and returns a random valid move.
     """
     return random.choice(valid_moves)
+
+
+def evaluate_position_with_fairy_stockfish(game_state):
+    # 轉換成 FEN 字串
+    fen = convert_to_fen(game_state)
+
+    # 初始化 fairy-stockfish 引擎
+    try:
+        with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
+            print("[DEBUG] FEN passed to Stockfish:", fen)
+            # 設定 NNUE 模型路徑（若有需要）
+            engine.configure({"UCI_EvalFile": os.path.join("NNUE model", "NNUE model/duck-ba21f91f5d81.nnue")})
+
+            # 計算 position 評分
+            board = chess.Board(fen)
+            result = engine.analyse(board, chess.engine.Limit(time=0.5))
+            score = result["score"].white().score(mate_score=10000)
+            if score is None:
+                score = 0
+            score = int(score)
+            return score if game_state.white_to_move else -score
+    except Exception as e:
+        print(f"[Error] 評估失敗：{e}")
+        return 0
+
+
+def convert_to_fen(game_state):
+    rows = []
+    for r in range(8):
+        empty = 0
+        row_str = ""
+        for c in range(8):
+            piece = game_state.board[r][c]
+            if piece == "--" or piece == "DD":
+                empty += 1
+            else:
+                if empty != 0:
+                    row_str += str(empty)
+                    empty = 0
+                piece_char = piece[1]
+                if piece[0] == "w":
+                    row_str += piece_char.upper()
+                else:
+                    row_str += piece_char.lower()
+        if empty != 0:
+            row_str += str(empty)
+        rows.append(row_str)
+    board_fen = "/".join(rows)
+
+    turn = "w" if game_state.white_to_move else "b"
+
+    # castling/en passant 先忽略或改進
+    fen = f"{board_fen} {turn} - - 0 1"
+    return fen

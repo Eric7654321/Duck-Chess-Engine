@@ -3,7 +3,7 @@ Storing all the information about the current state of chess game.
 Determining valid moves at current state.
 It will keep move log.
 """
-
+import chess
 
 class GameState:
     def __init__(self):
@@ -25,7 +25,7 @@ class GameState:
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]]
 
         # 初始化鴨子位置 (確保不在已有棋子的位置)
-        self.duck_location = (4, 4)  # 初始位置在中心
+        self.duck_location = (2, 7)  # 找個死人位置丟著
         assert self.board[self.duck_location[0]][self.duck_location[1]] == "--", "Duck initial position occupied!"
         self.board[self.duck_location[0]][self.duck_location[1]] = "DD"  # DD 表示鴨子
         self.duck_location_log = [self.duck_location]  # 鴨子位置歷史記錄
@@ -855,7 +855,28 @@ class GameState:
                     moves.append(Move((current_row, current_col), (end_row, end_col), self.board, is_duck_move=True))
 
         return moves
+    # 在 GameState 類別中加入
+    def get_fen(self):
+        # 將自訂的 board 轉換成標準 FEN 格式
+        fen_rows = []
+        for row in self.board:
+            fen_row = ""
+            empty = 0
+            for square in row:
+                if square == "--" or square == "DD":
+                    empty += 1
+                else:
+                    if empty > 0:
+                        fen_row += str(empty)
+                        empty = 0
+                    fen_row += square[1].lower() if square[0] == 'b' else square[1].upper()
+            if empty > 0:
+                fen_row += str(empty)
+            fen_rows.append(fen_row)
+        fen_board = "/".join(fen_rows)
 
+        turn = "w" if self.white_to_move else "b"
+        return f"{fen_board} {turn} - - 0 1"  # 簡化版的 FEN：無 castling、無 en passant
 
 class CastleRights:
     def __init__(self, wks, bks, wqs, bqs):
@@ -960,3 +981,13 @@ class Move:
         if self.is_capture:
             move_string += "x"
         return move_string + end_square
+
+    # 在 Move 類別中加入
+    def get_uci(self):
+        """
+        Converts this move into standard UCI string (e.g., 'e2e4', 'g1f3')
+        """
+        start = chr(self.start_col + ord('a')) + str(8 - self.start_row)
+        end = chr(self.end_col + ord('a')) + str(8 - self.end_row)
+        return start + end
+
