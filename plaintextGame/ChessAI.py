@@ -21,7 +21,7 @@ piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1, "D": 0}  # Duck h
 
 FAIRY_STOCKFISH_PATH = (
     os.path.join('.', 'fairy-stockfish.exe') if sys.platform == 'win32' else
-    os.path.join('.', 'fairy-stockfish_x86-64') if sys.platform.startswith('linux') and platform.machine() == 'x86_64' else
+    os.path.join('.', 'fairy-stockfish_x86-64') if sys.platform.startswith('linux') else
     None
 )
 
