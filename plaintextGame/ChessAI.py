@@ -19,8 +19,11 @@ Move.get_uci = get_uci
 # Piece values and position scores remain the same as before
 piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1, "D": 0}  # Duck has 0 value
 
-FAIRY_STOCKFISH_PATH = './fairy-stockfish.exe' if sys.platform == 'win32'\
-            else './fairy-stockfish_x86-64'
+FAIRY_STOCKFISH_PATH = (
+    os.path.join('.', 'fairy-stockfish.exe') if sys.platform == 'win32' else
+    os.path.join('.', 'fairy-stockfish_x86-64') if sys.platform.startswith('linux') and platform.machine() == 'x86_64' else
+    None
+)
 
 knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
                  [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
