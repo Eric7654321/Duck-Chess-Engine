@@ -37,9 +37,13 @@ piece_score = {
 }  # Duck has 0 value
 
 FAIRY_STOCKFISH_PATH = (
-    os.path.join('.', 'fairy-stockfish.exe') if sys.platform == 'win32' else
-    os.path.join('.', 'fairy-stockfish_x86-64') if sys.platform.startswith('linux') else
-    None
+    os.path.join(".", "fairy-stockfish.exe")
+    if sys.platform == "win32"
+    else (
+        os.path.join(".", "fairy-stockfish_x86-64")
+        if sys.platform.startswith("linux")
+        else None
+    )
 )
 
 knight_scores = [
