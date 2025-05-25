@@ -1,0 +1,38 @@
+name: Format Python Code
+
+on: push
+permissions:
+  contents: write
+
+jobs:
+  python-code-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: "x64"
+          cache: 'pip'
+
+      - name: Display Python version
+        run: python --version
+
+      - name: Install packages
+        run: pip install black autopep8 isort
+
+      - name: Formatter
+        run: |
+          black .
+          autopep8 --recursive --in-place --aggressive --aggressive .
+          isort .
+
+      - name: Commit formatting changes
+        if: success()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "[style]: :art: Auto-format code with autopep8"
+          file_pattern: "**/*.py" # Adjust as needed
+          # This action will only commit if Prettier actually made changes.
+          commit_options: '--no-verify' # Skip pre-commit hooks if any, as we're in CI
