@@ -7,6 +7,7 @@ import chess
 import chess.engine
 from ChessEngine import Move  # Added: import Move class to attach get_uci method
 import os
+import sys
 
 # Added: Support Move.get_uci() for matching UCI strings
 def get_uci(self):
@@ -18,7 +19,8 @@ Move.get_uci = get_uci
 # Piece values and position scores remain the same as before
 piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1, "D": 0}  # Duck has 0 value
 
-FAIRY_STOCKFISH_PATH = "fairy-stockfish.exe"
+FAIRY_STOCKFISH_PATH = './fairy-stockfish.exe' if sys.platform == 'win32'\
+            else './fairy-stockfish_x86-64'
 
 knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
                  [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
