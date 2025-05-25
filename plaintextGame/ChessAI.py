@@ -1,90 +1,122 @@
 """
 Handling the AI moves for Duck Chess.
 """
-import random
+
 import math
+import os
+import random
+
 import chess
 import chess.engine
-from ChessEngine import Move  # Added: import Move class to attach get_uci method
-import os
+from ChessEngine import \
+    Move  # Added: import Move class to attach get_uci method
+
 
 # Added: Support Move.get_uci() for matching UCI strings
 def get_uci(self):
     # Convert move to UCI format (e.g., e2e4)
-    return (self.cols_to_files[self.start_col] + self.rows_to_ranks[self.start_row] +
-            self.cols_to_files[self.end_col] + self.rows_to_ranks[self.end_row])
+    return (
+        self.cols_to_files[self.start_col]
+        + self.rows_to_ranks[self.start_row]
+        + self.cols_to_files[self.end_col]
+        + self.rows_to_ranks[self.end_row]
+    )
+
+
 Move.get_uci = get_uci
 
 # Piece values and position scores remain the same as before
-piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1, "D": 0}  # Duck has 0 value
+piece_score = {
+    "K": 0,
+    "Q": 9,
+    "R": 5,
+    "B": 3,
+    "N": 3,
+    "p": 1,
+    "D": 0,
+}  # Duck has 0 value
 
 FAIRY_STOCKFISH_PATH = "fairy-stockfish.exe"
 
-knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
-                 [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
-                 [0.2, 0.5, 0.6, 0.65, 0.65, 0.6, 0.5, 0.2],
-                 [0.2, 0.55, 0.65, 0.7, 0.7, 0.65, 0.55, 0.2],
-                 [0.2, 0.5, 0.65, 0.7, 0.7, 0.65, 0.5, 0.2],
-                 [0.2, 0.55, 0.6, 0.65, 0.65, 0.6, 0.55, 0.2],
-                 [0.1, 0.3, 0.5, 0.55, 0.55, 0.5, 0.3, 0.1],
-                 [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0]]
+knight_scores = [
+    [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
+    [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
+    [0.2, 0.5, 0.6, 0.65, 0.65, 0.6, 0.5, 0.2],
+    [0.2, 0.55, 0.65, 0.7, 0.7, 0.65, 0.55, 0.2],
+    [0.2, 0.5, 0.65, 0.7, 0.7, 0.65, 0.5, 0.2],
+    [0.2, 0.55, 0.6, 0.65, 0.65, 0.6, 0.55, 0.2],
+    [0.1, 0.3, 0.5, 0.55, 0.55, 0.5, 0.3, 0.1],
+    [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
+]
 
-bishop_scores = [[0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0],
-                 [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
-                 [0.2, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.2],
-                 [0.2, 0.5, 0.5, 0.6, 0.6, 0.5, 0.5, 0.2],
-                 [0.2, 0.4, 0.6, 0.6, 0.6, 0.6, 0.4, 0.2],
-                 [0.2, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.2],
-                 [0.2, 0.5, 0.4, 0.4, 0.4, 0.4, 0.5, 0.2],
-                 [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0]]
+bishop_scores = [
+    [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0],
+    [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
+    [0.2, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.2],
+    [0.2, 0.5, 0.5, 0.6, 0.6, 0.5, 0.5, 0.2],
+    [0.2, 0.4, 0.6, 0.6, 0.6, 0.6, 0.4, 0.2],
+    [0.2, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.2],
+    [0.2, 0.5, 0.4, 0.4, 0.4, 0.4, 0.5, 0.2],
+    [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0],
+]
 
-rook_scores = [[0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
-               [0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.5],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.25, 0.25, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25]]
+rook_scores = [
+    [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+    [0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.5],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.25, 0.25, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25],
+]
 
-queen_scores = [[0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0],
-                [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
-                [0.2, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
-                [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-                [0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-                [0.2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
-                [0.2, 0.4, 0.5, 0.4, 0.4, 0.4, 0.4, 0.2],
-                [0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0]]
+queen_scores = [
+    [0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0],
+    [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
+    [0.2, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
+    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
+    [0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
+    [0.2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
+    [0.2, 0.4, 0.5, 0.4, 0.4, 0.4, 0.4, 0.2],
+    [0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0],
+]
 
-pawn_scores = [[0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
-               [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
-               [0.3, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.3],
-               [0.25, 0.25, 0.3, 0.45, 0.45, 0.3, 0.25, 0.25],
-               [0.2, 0.2, 0.2, 0.4, 0.4, 0.2, 0.2, 0.2],
-               [0.25, 0.15, 0.1, 0.2, 0.2, 0.1, 0.15, 0.25],
-               [0.25, 0.3, 0.3, 0.0, 0.0, 0.3, 0.3, 0.25],
-               [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]]
+pawn_scores = [
+    [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
+    [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
+    [0.3, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.3],
+    [0.25, 0.25, 0.3, 0.45, 0.45, 0.3, 0.25, 0.25],
+    [0.2, 0.2, 0.2, 0.4, 0.4, 0.2, 0.2, 0.2],
+    [0.25, 0.15, 0.1, 0.2, 0.2, 0.1, 0.15, 0.25],
+    [0.25, 0.3, 0.3, 0.0, 0.0, 0.3, 0.3, 0.25],
+    [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+]
 
-piece_position_scores = {"wN": knight_scores,
-                         "bN": knight_scores[::-1],
-                         "wB": bishop_scores,
-                         "bB": bishop_scores[::-1],
-                         "wQ": queen_scores,
-                         "bQ": queen_scores[::-1],
-                         "wR": rook_scores,
-                         "bR": rook_scores[::-1],
-                         "wp": pawn_scores,
-                         "bp": pawn_scores[::-1]}
+piece_position_scores = {
+    "wN": knight_scores,
+    "bN": knight_scores[::-1],
+    "wB": bishop_scores,
+    "bB": bishop_scores[::-1],
+    "wQ": queen_scores,
+    "bQ": queen_scores[::-1],
+    "wR": rook_scores,
+    "bR": rook_scores[::-1],
+    "wp": pawn_scores,
+    "bp": pawn_scores[::-1],
+}
 
 # Add duck position scores (ducks are best in the center)
-duck_scores = [[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-               [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
-               [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]]
+duck_scores = [
+    [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
+    [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+]
 
 piece_position_scores["DD"] = duck_scores
 
@@ -113,8 +145,14 @@ def findBestMove(game_state, valid_moves, return_queue):
         # Piece movement phase - find best piece move
         if piece_moves:
             random.shuffle(piece_moves)
-            findMoveNegaMaxAlphaBeta(game_state, piece_moves, DEPTH, -CHECKMATE, CHECKMATE,
-                                     1 if game_state.white_to_move else -1)
+            findMoveNegaMaxAlphaBeta(
+                game_state,
+                piece_moves,
+                DEPTH,
+                -CHECKMATE,
+                CHECKMATE,
+                1 if game_state.white_to_move else -1,
+            )
 
     return_queue.put(next_move)
 
@@ -139,11 +177,19 @@ def findBestDuckMove(game_state, valid_duck_moves):
 
         # Calculate blocking score
         blocking_score = 0
-        enemy_color = 'b' if game_state.white_to_move else 'w'
+        enemy_color = "b" if game_state.white_to_move else "w"
 
         # Check if duck is blocking enemy pieces
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
-                      (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        directions = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+            (-1, -1),
+            (-1, 1),
+            (1, -1),
+            (1, 1),
+        ]
         for dr, dc in directions:
             for i in range(1, 8):
                 r, c = row + dr * i, col + dc * i
@@ -153,11 +199,11 @@ def findBestDuckMove(game_state, valid_duck_moves):
                         continue
                     if piece[0] == enemy_color:
                         # Modified: weight blocking queen/rook higher
-                        if piece[1] == 'Q':
+                        if piece[1] == "Q":
                             blocking_score += 3  # high bonus for blocking enemy queen
-                        elif piece[1] == 'R':
+                        elif piece[1] == "R":
                             blocking_score += 2  # bonus for blocking enemy rook
-                        elif piece[1] == 'B':
+                        elif piece[1] == "B":
                             blocking_score += 1  # bonus for blocking enemy bishop
                     break
 
@@ -170,7 +216,7 @@ def findBestDuckMove(game_state, valid_duck_moves):
                     piece = game_state.board[r][c]
                     if piece == "--":
                         continue
-                    if piece[0] == ('w' if game_state.white_to_move else 'b'):
+                    if piece[0] == ("w" if game_state.white_to_move else "b"):
                         own_piece_penalty += 1  # penalty for blocking our own pieces
                     break
 
@@ -183,20 +229,28 @@ def findBestDuckMove(game_state, valid_duck_moves):
     next_move = best_move if best_move else random.choice(valid_duck_moves)
 
 
-def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_multiplier):
+def findMoveNegaMaxAlphaBeta(
+    game_state, valid_moves, depth, alpha, beta, turn_multiplier
+):
     # Modified: integrate Stockfish move at root and ensure full move search
     """
     NegaMax algorithm with alpha-beta pruning for piece moves.
     """
     global next_move
-    top_level = (depth == DEPTH)
+    top_level = depth == DEPTH
     # If at root depth, get Stockfish's recommended move first
     if top_level:
         try:
             # Use Fairy-Stockfish to get best move in UCI
             fen = convert_to_fen(game_state)
             with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
-                engine.configure({"EvalFile": os.path.join("NNUE model", "NNUE model/duck-ba21f91f5d81.nnue")})
+                engine.configure(
+                    {
+                        "EvalFile": os.path.join(
+                            "NNUE model", "NNUE model/duck-ba21f91f5d81.nnue"
+                        )
+                    }
+                )
                 board = chess.Board(fen)
                 result = engine.play(board, chess.engine.Limit(time=0.5))
                 best_uci = result.move.uci()
@@ -208,8 +262,14 @@ def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_m
                     game_state.makeMove(move)
                     next_moves = game_state.getValidMoves()
                     piece_moves = [m for m in next_moves if not m.is_duck_move]
-                    score = -findMoveNegaMaxAlphaBeta(game_state, piece_moves, depth - 1,
-                                                      -beta, -alpha, -turn_multiplier)
+                    score = -findMoveNegaMaxAlphaBeta(
+                        game_state,
+                        piece_moves,
+                        depth - 1,
+                        -beta,
+                        -alpha,
+                        -turn_multiplier,
+                    )
                     game_state.undoMove()
                     return score
         except Exception as e:
@@ -222,7 +282,7 @@ def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_m
         fs_score = evaluate_position_with_fairy_stockfish(game_state)
         pos_score = scoreBoard(game_state)
         # Weighted combination (80% Stockfish, 20% positional)
-        combined_score = (fs_score * 0.8 + pos_score * 0.2)
+        combined_score = fs_score * 0.8 + pos_score * 0.2
         return turn_multiplier * combined_score
 
     best_score = -CHECKMATE
@@ -232,8 +292,9 @@ def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_m
         next_moves = game_state.getValidMoves()
         # Skip duck moves when evaluating board state
         piece_moves = [m for m in next_moves if not m.is_duck_move]
-        score = -findMoveNegaMaxAlphaBeta(game_state, piece_moves,
-                                          depth - 1, -beta, -alpha, -turn_multiplier)
+        score = -findMoveNegaMaxAlphaBeta(
+            game_state, piece_moves, depth - 1, -beta, -alpha, -turn_multiplier
+        )
         game_state.undoMove()
 
         if score > best_score:
@@ -269,7 +330,9 @@ def scoreBoard(game_state):
             if piece != "--":
                 piece_position_score = 0
                 if piece[1] == "D":  # Duck
-                    piece_position_score = duck_scores[row][col] * 0.5  # Duck position is less important
+                    piece_position_score = (
+                        duck_scores[row][col] * 0.5
+                    )  # Duck position is less important
                 elif piece[1] != "K":  # Other pieces (except king)
                     piece_position_score = piece_position_scores[piece][row][col]
 
@@ -302,7 +365,13 @@ def evaluate_position_with_fairy_stockfish(game_state):
         with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
             print("[DEBUG] FEN passed to Stockfish:", fen)
             # 設定 NNUE 模型路徑（若有需要）
-            engine.configure({"UCI_EvalFile": os.path.join("NNUE model", "NNUE model/duck-ba21f91f5d81.nnue")})
+            engine.configure(
+                {
+                    "UCI_EvalFile": os.path.join(
+                        "NNUE model", "NNUE model/duck-ba21f91f5d81.nnue"
+                    )
+                }
+            )
 
             # 計算 position 評分
             board = chess.Board(fen)
