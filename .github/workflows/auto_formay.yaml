@@ -6,7 +6,7 @@ permissions:
 
 jobs:
   python-code-format:
-    runs-on: ubuntu-lastst
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
