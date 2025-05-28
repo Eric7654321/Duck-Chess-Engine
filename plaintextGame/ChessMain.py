@@ -94,8 +94,8 @@ def run_ai_vs_ai(game_state, player_one, player_two):
 
 def main():
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one = 'ai_handcraft'  #white
-    player_two = 'ai_nnue' #black
+    player_one = "ai_handcraft"  # white
+    player_two = "ai_nnue"  # black
     visualize_game = False  # True to show pygame UI, False to run silently if AI vs AI
 
     if visualize_game is False:
