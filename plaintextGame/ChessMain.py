@@ -560,6 +560,7 @@ if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
     player_one="ai_handcraft"
     player_two="ai_nnue"
+    
     #to run the testing(DO NOT use human here)
     #run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
 
