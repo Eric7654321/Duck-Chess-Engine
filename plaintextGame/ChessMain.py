@@ -559,11 +559,11 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 
 if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one="ai_handcraft"
-    player_two="ai_nnue"
-    
-    #to run the testing(DO NOT use human here)
-    #run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
+    player_one = "ai_handcraft"
+    player_two = "ai_nnue"
 
-    #to run the game
-    main(player_one, player_two,visualize_game=True)
+    # to run the testing(DO NOT use human here)
+    # run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
+
+    # to run the game
+    main(player_one, player_two, visualize_game=True)
