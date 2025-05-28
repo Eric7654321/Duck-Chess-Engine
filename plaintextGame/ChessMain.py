@@ -96,7 +96,7 @@ def main():
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
     player_one = "ai_handcraft"  # white
     player_two = "ai_random"  # black
-    visualize_game = False  # True to show pygame UI, False to run silently if AI vs AI
+    visualize_game = True  # True to show pygame UI, False to run silently if AI vs AI
 
     if visualize_game is False:
         # If any player is human, can't run non-visual mode
@@ -549,5 +549,5 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 if __name__ == "__main__":
     player_one="ai_handcraft"
     player_two="ai_nnue"
-    run_parallel_games(player_one, player_two, num_games=100, num_workers=cpu_count()/2)
-    # main()
+    #run_parallel_games(player_one, player_two, num_games=100, num_workers=cpu_count()//2)
+    main()
