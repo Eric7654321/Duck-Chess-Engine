@@ -14,6 +14,7 @@ import chess.engine
 import ChessAI
 import ChessEngine
 import pygame as p
+from tqdm import tqdm
 
 BOARD_WIDTH = BOARD_HEIGHT = 512
 MOVE_LOG_PANEL_WIDTH = 250
@@ -523,13 +524,16 @@ def run_single_game(dummy_arg, player_one, player_two):
     else:
         return "Unknown"
 
-from tqdm import tqdm
 
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
-    func = functools.partial(run_single_game, player_one=player_one, player_two=player_two)
+    func = functools.partial(
+        run_single_game, player_one=player_one, player_two=player_two
+    )
     with Pool(processes=num_workers) as pool:
         results = []
-        for result in tqdm(pool.imap_unordered(func, range(num_games)), total=num_games):
+        for result in tqdm(
+            pool.imap_unordered(func, range(num_games)), total=num_games
+        ):
             results.append(result)
 
     white_wins = results.count("White")
@@ -541,17 +545,21 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
     print(
         f"White ({player_one}) wins: {white_wins} ({
             white_wins /
-            num_games:.2%})")
+            num_games:.2%})"
+    )
     print(
         f"Black ({player_two}) wins: {black_wins} ({
             black_wins /
-            num_games:.2%})")
+            num_games:.2%})"
+    )
     print(f"Draws: {draws} ({draws / num_games:.2%})")
     print(f"over200: {over200} ({over200 / num_games:.2%})")
 
 
 if __name__ == "__main__":
-    player_one="ai_handcraft"
-    player_two="ai_nnue"
-    run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
-    #main()
+    player_one = "ai_handcraft"
+    player_two = "ai_nnue"
+    run_parallel_games(
+        player_one, player_two, num_games=10, num_workers=cpu_count() // 2
+    )
+    # main()

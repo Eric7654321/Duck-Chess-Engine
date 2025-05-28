@@ -74,15 +74,16 @@ class GameState:
                 self.current_castling_rights.bqs,
             )
         ]  # 修正拼寫錯誤
-        self.no_capture_move_count = 0  # counts half-moves (ply) since last capture
+        # counts half-moves (ply) since last capture
+        self.no_capture_move_count = 0
 
     def makeMove(self, move):
         """
         Takes a Move as a parameter and executes it.
         Now handles duck moves and two-phase turns.
         """
-        #超過200
-        #if len(self.move_log) > 200:
+        # 超過200
+        # if len(self.move_log) > 200:
         #    raise Exception("Maximum number of moves (200) exceeded.")
 
         if not move.is_duck_move:  # 普通棋子移動
