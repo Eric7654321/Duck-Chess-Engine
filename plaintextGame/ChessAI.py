@@ -5,7 +5,7 @@ Handling the AI moves for Duck Chess.
 import math
 import os
 import random
-
+import sys
 import chess
 import chess.engine
 from ChessEngine import \
