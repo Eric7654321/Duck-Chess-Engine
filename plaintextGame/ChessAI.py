@@ -6,6 +6,7 @@ import math
 import os
 import random
 import sys
+
 import chess
 import chess.engine
 from ChessEngine import \
@@ -133,7 +134,7 @@ STALEMATE = 0
 DEPTH = 5
 
 
-def findBestMove(game_state, valid_moves, return_queue,mode='nnue'):
+def findBestMove(game_state, valid_moves, return_queue, mode="nnue"):
     """
     Find the best move considering duck chess rules.
     Handles both piece movement phase and duck movement phase.
@@ -160,7 +161,7 @@ def findBestMove(game_state, valid_moves, return_queue,mode='nnue'):
                 -CHECKMATE,
                 CHECKMATE,
                 1 if game_state.white_to_move else -1,
-                mode
+                mode,
             )
 
     return_queue.put(next_move)
@@ -239,7 +240,7 @@ def findBestDuckMove(game_state, valid_duck_moves):
 
 
 def findMoveNegaMaxAlphaBeta(
-    game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode='nnue'
+    game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
 ):
     # Modified: integrate Stockfish move at root and ensure full move search
     """
@@ -363,8 +364,10 @@ def findRandomMove(valid_moves, return_queue):
     Picks a random valid move and puts it into the return_queue.
     """
     import random
+
     move = random.choice(valid_moves)
     return_queue.put(move)
+
 
 def evaluate_position_with_fairy_stockfish(game_state):
     # 轉換成 FEN 字串

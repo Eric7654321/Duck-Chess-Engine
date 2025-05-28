@@ -48,8 +48,10 @@ def loadImages():
             (SQUARE_SIZE, SQUARE_SIZE),
         )
 
+
 def is_ai_player(player_type):
-    return player_type in ('ai_random', 'ai_handcraft', 'ai_nnue')
+    return player_type in ("ai_random", "ai_handcraft", "ai_nnue")
+
 
 def run_ai_vs_ai(game_state, player_one, player_two):
     import queue
@@ -62,12 +64,12 @@ def run_ai_vs_ai(game_state, player_one, player_two):
         if not valid_moves:
             break
 
-        if player_type == 'ai_random':
+        if player_type == "ai_random":
             q = queue.Queue()
             ChessAI.findRandomMove(valid_moves, q)
             move = q.get()
         else:
-            mode = player_type.split('_')[1]  # 'handcraft' or 'nnue'
+            mode = player_type.split("_")[1]  # 'handcraft' or 'nnue'
             q = queue.Queue()
             ChessAI.findBestMove(game_state, valid_moves, q, mode=mode)
             move = q.get()
@@ -90,7 +92,6 @@ def run_ai_vs_ai(game_state, player_one, player_two):
         print("Game ended without checkmate or stalemate.")
 
 
-
 def main():
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
     player_one = 'ai_handcraft'  #white
@@ -100,7 +101,9 @@ def main():
     if visualize_game is False:
         # If any player is human, can't run non-visual mode
         if not (is_ai_player(player_one) and is_ai_player(player_two)):
-            raise ValueError("Non-visual mode only supports AI vs AI (no human players).")
+            raise ValueError(
+                "Non-visual mode only supports AI vs AI (no human players)."
+            )
         # Run silent AI vs AI mode
         game_state = ChessEngine.GameState()
         run_ai_vs_ai(game_state, player_one, player_two)
@@ -131,10 +134,10 @@ def main():
     move_finder_process = None
     move_log_font = p.font.SysFont("Arial", 14, False, False)
 
-
     while running:
-        human_turn = (game_state.white_to_move and player_one == 'human') or \
-               (not game_state.white_to_move and player_two == 'human')
+        human_turn = (game_state.white_to_move and player_one == "human") or (
+            not game_state.white_to_move and player_two == "human"
+        )
 
         # Duck move phase handling
         if game_state.duck_move_phase:
@@ -230,29 +233,25 @@ def main():
                 return_queue = Queue()
                 current_player = player_one if game_state.white_to_move else player_two
 
-                if current_player == 'ai_random':
+                if current_player == "ai_random":
                     move_finder_process = Process(
-                        target=ChessAI.findRandomMove,
-                        args=(valid_moves, return_queue)
-                    )
-                elif current_player == 'ai_handcraft':
+                        target=ChessAI.findRandomMove, args=(
+                            valid_moves, return_queue))
+                elif current_player == "ai_handcraft":
                     move_finder_process = Process(
-                        target=ChessAI.findBestMove,
-                        args=(game_state, valid_moves, return_queue, 'handcraft')
-                    )
-                elif current_player == 'ai_nnue':
+                        target=ChessAI.findBestMove, args=(
+                            game_state, valid_moves, return_queue, "handcraft"), )
+                elif current_player == "ai_nnue":
                     move_finder_process = Process(
                         target=ChessAI.findBestMove,
-                        args=(game_state, valid_moves, return_queue, 'nnue')
+                        args=(game_state, valid_moves, return_queue, "nnue"),
                     )
                 else:
                     # fallback random AI
                     move_finder_process = Process(
-                        target=ChessAI.findRandomMove,
-                        args=(valid_moves, return_queue)
-                    )
+                        target=ChessAI.findRandomMove, args=(
+                            valid_moves, return_queue))
                 move_finder_process.start()
-
 
             if not move_finder_process.is_alive():
                 ai_move = return_queue.get()
