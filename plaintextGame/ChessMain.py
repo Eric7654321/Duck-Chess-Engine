@@ -523,14 +523,14 @@ def run_single_game(dummy_arg, player_one, player_two):
     else:
         return "Unknown"
 
+from tqdm import tqdm
 
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
+    func = functools.partial(run_single_game, player_one=player_one, player_two=player_two)
     with Pool(processes=num_workers) as pool:
-        # Use partial to fix player_one and player_two parameters
-        func = functools.partial(
-            run_single_game, player_one=player_one, player_two=player_two
-        )
-        results = pool.map(func, range(num_games))
+        results = []
+        for result in tqdm(pool.imap_unordered(func, range(num_games)), total=num_games):
+            results.append(result)
 
     white_wins = results.count("White")
     black_wins = results.count("Black")
@@ -553,5 +553,5 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 if __name__ == "__main__":
     player_one="ai_handcraft"
     player_two="ai_nnue"
-    #run_parallel_games(player_one, player_two, num_games=100, num_workers=cpu_count()//2)
-    main()
+    run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
+    #main()
