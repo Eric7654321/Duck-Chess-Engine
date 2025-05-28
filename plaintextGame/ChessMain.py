@@ -94,11 +94,11 @@ def run_ai_vs_ai(game_state, player_one, player_two):
         print("Game ended without checkmate or stalemate.")
 
 
-def main():
+def main(player_one, player_two,visualize_game=True):
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one = "ai_handcraft"  # white
-    player_two = "ai_random"  # black
-    visualize_game = True  # True to show pygame UI, False to run silently if AI vs AI
+    #player_one = "ai_handcraft"  # white
+    #player_two = "ai_random"  # black
+    #visualize_game = True  # True to show pygame UI, False to run silently if AI vs AI
 
     if visualize_game is False:
         # If any player is human, can't run non-visual mode
@@ -534,7 +534,7 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 
     white_wins = results.count("White")
     black_wins = results.count("Black")
-    over200 = results.count("over200")
+    #over200 = results.count("over200")
     draws = results.count("Draw")
 
     print(f"Out of {num_games} games:")
@@ -547,11 +547,15 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
             black_wins /
             num_games:.2%})")
     print(f"Draws: {draws} ({draws / num_games:.2%})")
-    print(f"over200: {over200} ({over200 / num_games:.2%})")
+    #print(f"over200: {over200} ({over200 / num_games:.2%})")
 
 
 if __name__ == "__main__":
+    # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
     player_one="ai_handcraft"
     player_two="ai_nnue"
-    run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
-    #main()
+    #to run the testing(DO NOT use human here)
+    #run_parallel_games(player_one, player_two, num_games=10, num_workers=cpu_count()//2)
+
+    #to run the game
+    main(player_one, player_two,visualize_game=True)
