@@ -77,8 +77,13 @@ def run_ai_vs_ai(game_state, player_one, player_two):
     if game_state.checkmate:
         # The side to move is checkmated, so the other side won
         winner_color = "White" if not game_state.white_to_move else "Black"
+        loser_color = "Black" if winner_color == "White" else "White"
         winner_type = player_one if winner_color == "White" else player_two
-        print(f"Checkmate! {winner_color} ({winner_type}) wins the game!")
+        loser_type = player_two if loser_color == "Black" else player_one
+        print(
+            f"Checkmate! {winner_color} ({winner_type}) beats over "
+            f"{loser_color} ({loser_type}) the game!"
+        )
     elif game_state.stalemate:
         print("Game ended in a stalemate (draw).")
     else:
@@ -87,9 +92,9 @@ def run_ai_vs_ai(game_state, player_one, player_two):
 
 
 def main():
-    # User-configurable variables:
-    player_one = 'ai_random'  # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_two = 'ai_nnue'
+    # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
+    player_one = 'ai_handcraft'  #white
+    player_two = 'ai_nnue' #black
     visualize_game = False  # True to show pygame UI, False to run silently if AI vs AI
 
     if visualize_game is False:
