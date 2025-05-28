@@ -48,43 +48,88 @@ def loadImages():
             (SQUARE_SIZE, SQUARE_SIZE),
         )
 
+def is_ai_player(player_type):
+    return player_type in ('ai_random', 'ai_handcraft', 'ai_nnue')
+
+def run_ai_vs_ai(game_state, player_one, player_two):
+    import queue
+
+    while not game_state.checkmate and not game_state.stalemate:
+        white_to_move = game_state.white_to_move
+        player_type = player_one if white_to_move else player_two
+        valid_moves = game_state.getValidMoves()
+
+        if not valid_moves:
+            break
+
+        if player_type == 'ai_random':
+            q = queue.Queue()
+            ChessAI.findRandomMove(valid_moves, q)
+            move = q.get()
+        else:
+            mode = player_type.split('_')[1]  # 'handcraft' or 'nnue'
+            q = queue.Queue()
+            ChessAI.findBestMove(game_state, valid_moves, q, mode=mode)
+            move = q.get()
+
+        game_state.makeMove(move)
+
+    if game_state.checkmate:
+        # The side to move is checkmated, so the other side won
+        winner_color = "White" if not game_state.white_to_move else "Black"
+        winner_type = player_one if winner_color == "White" else player_two
+        print(f"Checkmate! {winner_color} ({winner_type}) wins the game!")
+    elif game_state.stalemate:
+        print("Game ended in a stalemate (draw).")
+    else:
+        print("Game ended without checkmate or stalemate.")
+
+
 
 def main():
-    """
-    The main driver for our code.
-    This will handle user input and updating the graphics.
-    Now handles duck chess two-phase turns.
-    """
+    # User-configurable variables:
+    player_one = 'ai_random'  # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
+    player_two = 'ai_nnue'
+    visualize_game = False  # True to show pygame UI, False to run silently if AI vs AI
+
+    if visualize_game is False:
+        # If any player is human, can't run non-visual mode
+        if not (is_ai_player(player_one) and is_ai_player(player_two)):
+            raise ValueError("Non-visual mode only supports AI vs AI (no human players).")
+        # Run silent AI vs AI mode
+        game_state = ChessEngine.GameState()
+        run_ai_vs_ai(game_state, player_one, player_two)
+        return
+
+    # If visualize_game is True, run pygame UI mode (human or AI players)
     p.init()
+
     screen = p.display.set_mode(
         (BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
-    game_state = ChessEngine.GameState()
 
+    title = f"Black: {player_two}   White: {player_one}"
+    p.display.set_caption(title)
+
+    game_state = ChessEngine.GameState()
     valid_moves = game_state.getValidMoves()
-    move_made = False  # flag variable for when a move is made
-    animate = False  # flag variable for when we should animate a move
-    loadImages()  # do this only once before while loop
+    move_made = False
+    animate = False
+    loadImages()
     running = True
-    square_selected = ()  # no square is selected initially
-    player_clicks = []  # this will keep track of player clicks (two tuples)
+    square_selected = ()
+    player_clicks = []
     game_over = False
     ai_thinking = False
     move_undone = False
     move_finder_process = None
     move_log_font = p.font.SysFont("Arial", 14, False, False)
-    # play turn
-    player_one = True  # if a human is playing white, then this will be True, else False
-    player_two = False  # if a human is playing white, then this will be True, else False    player_one = True  # if a human is playing white, then this will be True, else False
-    # player_one = False  # if a human is playing white, then this will be True, else False    player_one = True  # if a human is playing white, then this will be True, else False
-    # player_two = True  # if a human is playing white, then this will be
-    # True, else False
+
 
     while running:
-        human_turn = (game_state.white_to_move and player_one) or (
-            not game_state.white_to_move and player_two
-        )
+        human_turn = (game_state.white_to_move and player_one == 'human') or \
+               (not game_state.white_to_move and player_two == 'human')
 
         # Duck move phase handling
         if game_state.duck_move_phase:
@@ -177,12 +222,32 @@ def main():
         if not game_over and not human_turn and not move_undone:
             if not ai_thinking:
                 ai_thinking = True
-                return_queue = Queue()  # used to pass data between threads
-                move_finder_process = Process(
-                    target=ChessAI.findBestMove,
-                    args=(game_state, valid_moves, return_queue),
-                )
+                return_queue = Queue()
+                current_player = player_one if game_state.white_to_move else player_two
+
+                if current_player == 'ai_random':
+                    move_finder_process = Process(
+                        target=ChessAI.findRandomMove,
+                        args=(valid_moves, return_queue)
+                    )
+                elif current_player == 'ai_handcraft':
+                    move_finder_process = Process(
+                        target=ChessAI.findBestMove,
+                        args=(game_state, valid_moves, return_queue, 'handcraft')
+                    )
+                elif current_player == 'ai_nnue':
+                    move_finder_process = Process(
+                        target=ChessAI.findBestMove,
+                        args=(game_state, valid_moves, return_queue, 'nnue')
+                    )
+                else:
+                    # fallback random AI
+                    move_finder_process = Process(
+                        target=ChessAI.findRandomMove,
+                        args=(valid_moves, return_queue)
+                    )
                 move_finder_process.start()
+
 
             if not move_finder_process.is_alive():
                 ai_move = return_queue.get()
@@ -378,7 +443,7 @@ def animateMove(move, screen, board, clock):
     global colors
     d_row = move.end_row - move.start_row
     d_col = move.end_col - move.start_col
-    frames_per_square = 10  # frames to move one square
+    frames_per_square = 1  # frames to move one square
     frame_count = (abs(d_row) + abs(d_col)) * frames_per_square
     for frame in range(frame_count + 1):
         row, col = (

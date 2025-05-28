@@ -26,7 +26,7 @@ class GameState:
         ]
 
         # 初始化鴨子位置 (確保不在已有棋子的位置)
-        self.duck_location = (4, 4)  # 初始位置在中心
+        self.duck_location = (3, 3)  # 初始位置在中心
         assert (
             self.board[self.duck_location[0]][self.duck_location[1]] == "--"
         ), "Duck initial position occupied!"
