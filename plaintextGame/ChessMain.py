@@ -4,9 +4,11 @@ Handling user input.
 Displaying current GameStatus object.
 """
 
+import functools
 import os
+import queue
 import sys
-from multiprocessing import Process, Queue
+from multiprocessing import Pool, Process, Queue, cpu_count
 
 import chess.engine
 import ChessAI
@@ -487,14 +489,6 @@ def animateMove(move, screen, board, clock):
         clock.tick(60)
 
 
-
-from multiprocessing import Pool, cpu_count
-import queue
-import functools
-
-import ChessEngine
-import ChessAI
-
 def run_single_game(dummy_arg, player_one, player_two):
     game_state = ChessEngine.GameState()
     try:
@@ -516,10 +510,10 @@ def run_single_game(dummy_arg, player_one, player_two):
                 move = valid_moves[0]
             game_state.makeMove(move)
     except Exception as e:
-        if "Maximum number of moves" in str(e): 
-            return "over200"# "Maximum number of moves (200) exceeded."
+        if "Maximum number of moves" in str(e):
+            return "over200"  # "Maximum number of moves (200) exceeded."
         else:
-            raise # re-raise any other exceptions
+            raise  # re-raise any other exceptions
 
     if game_state.checkmate:
         winner_color = "White" if not game_state.white_to_move else "Black"
@@ -529,10 +523,13 @@ def run_single_game(dummy_arg, player_one, player_two):
     else:
         return "Unknown"
 
+
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
     with Pool(processes=num_workers) as pool:
         # Use partial to fix player_one and player_two parameters
-        func = functools.partial(run_single_game, player_one=player_one, player_two=player_two)
+        func = functools.partial(
+            run_single_game, player_one=player_one, player_two=player_two
+        )
         results = pool.map(func, range(num_games))
 
     white_wins = results.count("White")
@@ -541,10 +538,17 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
     draws = results.count("Draw")
 
     print(f"Out of {num_games} games:")
-    print(f"White ({player_one}) wins: {white_wins} ({white_wins/num_games:.2%})")
-    print(f"Black ({player_two}) wins: {black_wins} ({black_wins/num_games:.2%})")
-    print(f"Draws: {draws} ({draws/num_games:.2%})")
-    print(f"over200: {over200} ({over200/num_games:.2%})")
+    print(
+        f"White ({player_one}) wins: {white_wins} ({
+            white_wins /
+            num_games:.2%})")
+    print(
+        f"Black ({player_two}) wins: {black_wins} ({
+            black_wins /
+            num_games:.2%})")
+    print(f"Draws: {draws} ({draws / num_games:.2%})")
+    print(f"over200: {over200} ({over200 / num_games:.2%})")
+
 
 if __name__ == "__main__":
     player_one="ai_handcraft"
