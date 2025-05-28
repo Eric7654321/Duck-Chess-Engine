@@ -289,11 +289,15 @@ def findMoveNegaMaxAlphaBeta(
 
     if depth == 0:
         # Optionally combine Stockfish eval with positional eval
-        fs_score = evaluate_position_with_fairy_stockfish(game_state)
-        pos_score = scoreBoard(game_state)
+        if(mode=='nnue'):
+            score = evaluate_position_with_fairy_stockfish(game_state)
+        elif(mode=='handcraft'):
+            score = scoreBoard(game_state)
+        else : 
+            raise ValueError("no such ai_model")
         # Weighted combination (80% Stockfish, 20% positional)
-        combined_score = fs_score * 0.8 + pos_score * 0.2
-        return turn_multiplier * combined_score
+        #combined_score = fs_score * 0.8 + pos_score * 0.2
+        return turn_multiplier * score
 
     best_score = -CHECKMATE
     best_move_local = None
