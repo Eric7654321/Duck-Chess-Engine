@@ -80,6 +80,9 @@ class GameState:
         Takes a Move as a parameter and executes it.
         Now handles duck moves and two-phase turns.
         """
+        if len(self.move_log) > 200:
+            raise Exception("Maximum number of moves (200) exceeded.")
+        
         if not move.is_duck_move:  # 普通棋子移動
             self.board[move.start_row][move.start_col] = "--"
             self.board[move.end_row][move.end_col] = move.piece_moved
