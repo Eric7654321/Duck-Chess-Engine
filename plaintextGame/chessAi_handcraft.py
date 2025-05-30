@@ -1,82 +1,103 @@
 """
 Handling the AI moves for Duck Chess.
 """
-import random
+
 import math
+import random
 
 # Piece values and position scores remain the same as before
-piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1, "D": 0}  # Duck has 0 value
+piece_score = {
+    "K": 0,
+    "Q": 9,
+    "R": 5,
+    "B": 3,
+    "N": 3,
+    "p": 1,
+    "D": 0,
+}  # Duck has 0 value
 
-knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
-                 [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
-                 [0.2, 0.5, 0.6, 0.65, 0.65, 0.6, 0.5, 0.2],
-                 [0.2, 0.55, 0.65, 0.7, 0.7, 0.65, 0.55, 0.2],
-                 [0.2, 0.5, 0.65, 0.7, 0.7, 0.65, 0.5, 0.2],
-                 [0.2, 0.55, 0.6, 0.65, 0.65, 0.6, 0.55, 0.2],
-                 [0.1, 0.3, 0.5, 0.55, 0.55, 0.5, 0.3, 0.1],
-                 [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0]]
+knight_scores = [
+    [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
+    [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
+    [0.2, 0.5, 0.6, 0.65, 0.65, 0.6, 0.5, 0.2],
+    [0.2, 0.55, 0.65, 0.7, 0.7, 0.65, 0.55, 0.2],
+    [0.2, 0.5, 0.65, 0.7, 0.7, 0.65, 0.5, 0.2],
+    [0.2, 0.55, 0.6, 0.65, 0.65, 0.6, 0.55, 0.2],
+    [0.1, 0.3, 0.5, 0.55, 0.55, 0.5, 0.3, 0.1],
+    [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
+]
 
-bishop_scores = [[0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0],
-                 [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
-                 [0.2, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.2],
-                 [0.2, 0.5, 0.5, 0.6, 0.6, 0.5, 0.5, 0.2],
-                 [0.2, 0.4, 0.6, 0.6, 0.6, 0.6, 0.4, 0.2],
-                 [0.2, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.2],
-                 [0.2, 0.5, 0.4, 0.4, 0.4, 0.4, 0.5, 0.2],
-                 [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0]]
+bishop_scores = [
+    [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0],
+    [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
+    [0.2, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.2],
+    [0.2, 0.5, 0.5, 0.6, 0.6, 0.5, 0.5, 0.2],
+    [0.2, 0.4, 0.6, 0.6, 0.6, 0.6, 0.4, 0.2],
+    [0.2, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.2],
+    [0.2, 0.5, 0.4, 0.4, 0.4, 0.4, 0.5, 0.2],
+    [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0],
+]
 
-rook_scores = [[0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
-               [0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.5],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
-               [0.25, 0.25, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25]]
+rook_scores = [
+    [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+    [0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.5],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+    [0.25, 0.25, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25],
+]
 
-queen_scores = [[0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0],
-                [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
-                [0.2, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
-                [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-                [0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-                [0.2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
-                [0.2, 0.4, 0.5, 0.4, 0.4, 0.4, 0.4, 0.2],
-                [0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0]]
+queen_scores = [
+    [0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0],
+    [0.2, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2],
+    [0.2, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
+    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
+    [0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
+    [0.2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.2],
+    [0.2, 0.4, 0.5, 0.4, 0.4, 0.4, 0.4, 0.2],
+    [0.0, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.0],
+]
 
-pawn_scores = [[0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
-               [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
-               [0.3, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.3],
-               [0.25, 0.25, 0.3, 0.45, 0.45, 0.3, 0.25, 0.25],
-               [0.2, 0.2, 0.2, 0.4, 0.4, 0.2, 0.2, 0.2],
-               [0.25, 0.15, 0.1, 0.2, 0.2, 0.1, 0.15, 0.25],
-               [0.25, 0.3, 0.3, 0.0, 0.0, 0.3, 0.3, 0.25],
-               [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]]
+pawn_scores = [
+    [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
+    [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
+    [0.3, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.3],
+    [0.25, 0.25, 0.3, 0.45, 0.45, 0.3, 0.25, 0.25],
+    [0.2, 0.2, 0.2, 0.4, 0.4, 0.2, 0.2, 0.2],
+    [0.25, 0.15, 0.1, 0.2, 0.2, 0.1, 0.15, 0.25],
+    [0.25, 0.3, 0.3, 0.0, 0.0, 0.3, 0.3, 0.25],
+    [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+]
 
-piece_position_scores = {"wN": knight_scores,
-                         "bN": knight_scores[::-1],
-                         "wB": bishop_scores,
-                         "bB": bishop_scores[::-1],
-                         "wQ": queen_scores,
-                         "bQ": queen_scores[::-1],
-                         "wR": rook_scores,
-                         "bR": rook_scores[::-1],
-                         "wp": pawn_scores,
-                         "bp": pawn_scores[::-1]}
+piece_position_scores = {
+    "wN": knight_scores,
+    "bN": knight_scores[::-1],
+    "wB": bishop_scores,
+    "bB": bishop_scores[::-1],
+    "wQ": queen_scores,
+    "bQ": queen_scores[::-1],
+    "wR": rook_scores,
+    "bR": rook_scores[::-1],
+    "wp": pawn_scores,
+    "bp": pawn_scores[::-1],
+}
 
 # Add duck position scores (ducks are best in the center)
-duck_scores = [[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-               [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
-               [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
-               [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]]
+duck_scores = [
+    [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
+    [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
+    [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+]
 
 piece_position_scores["DD"] = duck_scores
 
-import random
-import math
 
 CHECKMATE = 1000
 STALEMATE = 0
@@ -84,6 +105,7 @@ DEPTH = 1  # reduce for testing; bump back up as needed
 
 # Global to hold the chosen move at the root
 next_move = None
+
 
 def findBestMove(game_state, valid_moves, return_queue):
     global next_move
@@ -93,6 +115,7 @@ def findBestMove(game_state, valid_moves, return_queue):
     piece_moves = [m for m in valid_moves if not m.is_duck_move]
     _ = negamax_full(game_state, piece_moves, DEPTH, -CHECKMATE, CHECKMATE, 1)
     return_queue.put(next_move)
+
 
 def negamax_full(game_state, moves, depth, alpha, beta, color):
     global next_move
@@ -104,7 +127,7 @@ def negamax_full(game_state, moves, depth, alpha, beta, color):
     for move in moves:
         # ─────────── SNAPSHOT ───────────
         orig_white = game_state.white_to_move
-        orig_duck   = game_state.duck_move_phase
+        orig_duck = game_state.duck_move_phase
 
         # 1) Piece move
         game_state.makeMove(move)
@@ -120,7 +143,10 @@ def negamax_full(game_state, moves, depth, alpha, beta, color):
             sc = -negamax_full(
                 game_state,
                 [m for m in game_state.getValidMoves() if not m.is_duck_move],
-                depth-1, -beta, -alpha, -color
+                depth - 1,
+                -beta,
+                -alpha,
+                -color,
             )
             game_state.undoMove()
             if sc > best_duck_score:
@@ -132,7 +158,10 @@ def negamax_full(game_state, moves, depth, alpha, beta, color):
             score = -negamax_full(
                 game_state,
                 [m for m in game_state.getValidMoves() if not m.is_duck_move],
-                depth-1, -beta, -alpha, -color
+                depth - 1,
+                -beta,
+                -alpha,
+                -color,
             )
             game_state.undoMove()
         else:
@@ -143,7 +172,7 @@ def negamax_full(game_state, moves, depth, alpha, beta, color):
         game_state.undoMove()  # undo the piece move
 
         # ────────── RESTORE STATE ─────────
-        game_state.white_to_move  = orig_white
+        game_state.white_to_move = orig_white
         game_state.duck_move_phase = orig_duck
 
         # ─── record move at root ───
@@ -156,7 +185,6 @@ def negamax_full(game_state, moves, depth, alpha, beta, color):
             break
 
     return max_score
-
 
 
 '''
@@ -278,6 +306,7 @@ def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_m
     return max_score
 '''
 
+
 def scoreBoard(game_state):
     """
     Score the board. A positive score is good for white, a negative score is good for black.
@@ -298,7 +327,9 @@ def scoreBoard(game_state):
             if piece != "--":
                 piece_position_score = 0
                 if piece[1] == "D":  # Duck
-                    piece_position_score = duck_scores[row][col] * 0.5  # Duck position is less important
+                    piece_position_score = (
+                        duck_scores[row][col] * 0.5
+                    )  # Duck position is less important
                 elif piece[1] != "K":  # Other pieces (except king)
                     piece_position_score = piece_position_scores[piece][row][col]
 

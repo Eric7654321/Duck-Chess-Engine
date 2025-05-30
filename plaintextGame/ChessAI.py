@@ -153,7 +153,7 @@ def findBestMove(game_state, valid_moves, return_queue, mode):
     else:
         # Piece movement phase - find best piece move
         if piece_moves:
-            if mode=="nnue":
+            if mode == "nnue":
                 random.shuffle(piece_moves)
                 nnueFindMoveNegaMaxAlphaBeta(
                     game_state,
@@ -161,19 +161,20 @@ def findBestMove(game_state, valid_moves, return_queue, mode):
                     DEPTH,
                     -CHECKMATE,
                     CHECKMATE,
-                    1 if game_state.white_to_move else -1
+                    1 if game_state.white_to_move else -1,
                 )
-            elif mode=="handcraft":
+            elif mode == "handcraft":
                 random.shuffle(piece_moves)
-                next_move=handcraftFindMoveNegaMaxAlphaBeta(
+                next_move = handcraftFindMoveNegaMaxAlphaBeta(
                     game_state,
                     piece_moves,
                     DEPTH,
                     -CHECKMATE,
                     CHECKMATE,
-                    1 if game_state.white_to_move else -1
+                    1 if game_state.white_to_move else -1,
                 )
-            else : raise NameError("no such ai here")
+            else:
+                raise NameError("no such ai here")
 
     return_queue.put(next_move)
 
@@ -249,14 +250,15 @@ def findBestDuckMove(game_state, valid_duck_moves):
 
     next_move = best_move if best_move else random.choice(valid_duck_moves)
 
+
 def handcraftFindMoveNegaMaxAlphaBeta(
     game_state, valid_moves, depth, alpha, beta, turn_multiplier
 ):
     if depth == 0:
         score = scoreBoard(game_state)
         return turn_multiplier * score
-    
-    best_move=None
+
+    best_move = None
     best_score = -CHECKMATE
     for move in valid_moves:
         game_state.makeMove(move)
@@ -270,16 +272,17 @@ def handcraftFindMoveNegaMaxAlphaBeta(
 
         if score > best_score:
             best_score = score
-            if(depth==DEPTH):
-                best_move=move
+            if depth == DEPTH:
+                best_move = move
         if best_score > alpha:
             alpha = best_score
         if alpha >= beta:
             break
-    if(depth==DEPTH):
+    if depth == DEPTH:
         return best_move
     else:
         return best_score
+
 
 def nnueFindMoveNegaMaxAlphaBeta(
     game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
