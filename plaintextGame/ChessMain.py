@@ -9,10 +9,12 @@ import os
 import queue
 import sys
 from multiprocessing import Pool, Process, Queue, cpu_count
+import random
 
 import chess.engine
 import ChessAI
 import ChessEngine
+import chessAi_handcraft
 import pygame as p
 from tqdm import tqdm
 
@@ -243,15 +245,15 @@ def main(player_one, player_two, visualize_game=True):
                             valid_moves, return_queue))
                 elif current_player == "ai_handcraft":
                     move_finder_process = Process(
-                        target=ChessAI.findBestMove, args=(
-                            game_state, valid_moves, return_queue, "handcraft"), )
+                        target=chessAi_handcraft.findBestMove, args=(
+                            game_state, valid_moves, return_queue), )
                 elif current_player == "ai_nnue":
                     move_finder_process = Process(
                         target=ChessAI.findBestMove,
                         args=(game_state, valid_moves, return_queue, "nnue"),
                     )
                 else:
-                    # fallback random AI
+                    raise NameError("no such ai")
                     move_finder_process = Process(
                         target=ChessAI.findRandomMove, args=(
                             valid_moves, return_queue))
@@ -260,7 +262,8 @@ def main(player_one, player_two, visualize_game=True):
             if not move_finder_process.is_alive():
                 ai_move = return_queue.get()
                 if ai_move is None:
-                    ai_move = ChessAI.findRandomMove(valid_moves)
+                    #ai_move = ChessAI.findRandomMove(valid_moves,ai_move)
+                    ai_move = random.choice(valid_moves)
                 game_state.makeMove(ai_move)
                 move_made = True
                 animate = True
@@ -506,7 +509,12 @@ def run_single_game(dummy_arg, player_one, player_two):
                 ChessAI.findRandomMove(valid_moves, q)
             else:
                 mode = player_type.split("_")[1]  # e.g. 'handcraft', 'nnue'
-                ChessAI.findBestMove(game_state, valid_moves, q, mode=mode)
+                if mode=="nnue":
+                    ChessAI.findBestMove(game_state, valid_moves, q, mode=mode)
+                elif mode=="handcraft":
+                    chessAi_handcraft.findBestMove(game_state, valid_moves, q)
+                else:
+                    raise ValueError("here's bug fix it")
             move = q.get()
             if move is None:
                 move = valid_moves[0]
@@ -560,12 +568,10 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
     player_one = "ai_handcraft"
-    player_two = "ai_nnue"
+    player_two = "ai_random"
 
     # to run the testing(DO NOT use human here)
-    run_parallel_games(
-        player_one, player_two, num_games=10, num_workers=cpu_count() // 2
-    )
+    run_parallel_games(player_one, player_two, num_games=100, num_workers=cpu_count() // 2)
 
     # to run the game
-    # main(player_one, player_two,visualize_game=True)
+    #main(player_one, player_two,visualize_game=True)
