@@ -611,15 +611,7 @@ def output_result(results,player_one, player_two):
     print("\nElement-wise averages (ignoring mate):")
     print(f'the more positive, the better to White ({player_one})')
     print([round(avg, 1) for avg in averages])
-    return
-    # Output
-    print("Counts:")
-    for label in ["white", "black", "Draw", "Unknown"]:
-        print(f"{label}: {counts.get(label, 0)}")
 
-    print("\nElement-wise averages (ignoring mate):")
-    print(f'the more positive, the better to white{label}')
-    print(averages)
 
 
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
