@@ -607,19 +607,20 @@ def output_result(results, player_one, player_two):
         f"White ({player_one}) wins: {
             counts['White']} ({
             counts['White'] /
-            num_games:.2%})")
+            num_games:.2%})"
+    )
     print(
         f"Black ({player_two}) wins: {
             counts['Black']} ({
             counts['Black'] /
-            num_games:.2%})")
+            num_games:.2%})"
+    )
     print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
     print(f"Unknown results: {counts['Unknown']}")
 
     print("\nElement-wise averages (ignoring mate):")
     print(f"the more positive, the better to White ({player_one})")
     print([round(avg, 1) for avg in averages])
-
 
 
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
