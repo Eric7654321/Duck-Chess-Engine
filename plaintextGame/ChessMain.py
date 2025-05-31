@@ -634,7 +634,7 @@ if __name__ == "__main__":
 
     # to run the testing(DO NOT use human here)
     run_parallel_games(
-        player_one, player_two, num_games=10, num_workers=cpu_count() // 2
+        player_one, player_two, num_games=100, num_workers=cpu_count() // 2
     )
 
     # to run the game
