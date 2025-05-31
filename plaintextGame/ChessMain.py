@@ -624,7 +624,7 @@ def output_result(results, player_one, player_two):
     plt.plot(range(1, len(averages) + 1), averages, marker='o', linestyle='-', linewidth=1)
 
     # Titles and labels
-    plt.title(f"Step-wise Averages White {player_one}vs Black {player_two}\nThe more positive, the better to White ({player_one})", fontsize=14)
+    plt.title(f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})", fontsize=14)
     plt.xlabel("Move")
     plt.ylabel("Evaluation Score")
     plt.grid(True)
@@ -661,8 +661,8 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 
 if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one = "ai_nnue"
-    player_two = "ai_random"
+    player_one = "ai_random"
+    player_two = "ai_handcraft"
 
     # to run the testing(DO NOT use human here)
     run_parallel_games(
