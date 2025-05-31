@@ -10,11 +10,12 @@ import queue
 import random
 import sys
 from multiprocessing import Pool, Process, Queue, cpu_count
-import matplotlib.pyplot as plt
+
 import chess.engine
 import ChessAI
 import chessAi_handcraft
 import ChessEngine
+import matplotlib.pyplot as plt
 import numpy as np
 import pygame as p
 from tqdm import tqdm
@@ -617,11 +618,19 @@ def output_result(results, player_one, player_two):
     )
     print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
     print(f"Unknown results: {counts['Unknown']}")
-    
+
     averages = [round(avg / 100, 1) for avg in averages]
     # Create the plot
     plt.figure(figsize=(12, 6))
-    plt.plot(range(1, len(averages) + 1), averages, marker='o', linestyle='-', linewidth=1)
+    plt.plot(
+        range(
+            1,
+            len(averages) +
+            1),
+        averages,
+        marker="o",
+        linestyle="-",
+        linewidth=1)
 
     # Titles and labels
     plt.title(f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})", fontsize=14)
@@ -630,13 +639,23 @@ def output_result(results, player_one, player_two):
     plt.grid(True)
 
     # Add winrate comment in top-left corner
-    plt.text(0.01, 0.95,
-            f"White({player_one}) Winrate: {counts['White'] / num_games:.1%}\nBlack({player_two}) Winrate: {counts['Black'] / num_games:.1%}",
-            transform=plt.gca().transAxes,
-            fontsize=10,
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
+    plt.text(
+        0.01,
+        0.95,
+        f"White({player_one}) Winrate: {
+            counts['White'] /
+            num_games:.1%}\nBlack({player_two}) Winrate: {
+            counts['Black'] /
+            num_games:.1%}",
+        transform=plt.gca().transAxes,
+        fontsize=10,
+        bbox=dict(
+            boxstyle="round",
+            facecolor="white",
+            alpha=0.7),
+    )
 
-    result_dir = os.path.join(os.path.dirname(__file__), '..', 'results')
+    result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
     os.makedirs(result_dir, exist_ok=True)
     filename = os.path.join(result_dir, f"{player_one}vs{player_two}.png")
 
