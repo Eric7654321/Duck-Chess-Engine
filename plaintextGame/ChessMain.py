@@ -1,7 +1,7 @@
 """
 Main driver file.
 Handling user input.
-Displaying current GameStatus object.fhgfnhgfngh
+Displaying current GameStatus object.
 """
 
 import functools
