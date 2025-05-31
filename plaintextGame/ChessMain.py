@@ -633,7 +633,10 @@ def output_result(results, player_one, player_two):
         linewidth=1)
 
     # Titles and labels
-    plt.title(f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})", fontsize=14)
+    plt.title(
+        f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})",
+        fontsize=14,
+    )
     plt.xlabel("Move")
     plt.ylabel("Evaluation Score")
     plt.grid(True)
@@ -649,10 +652,7 @@ def output_result(results, player_one, player_two):
             num_games:.1%}",
         transform=plt.gca().transAxes,
         fontsize=10,
-        bbox=dict(
-            boxstyle="round",
-            facecolor="white",
-            alpha=0.7),
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
     )
 
     result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
