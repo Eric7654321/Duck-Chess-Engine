@@ -16,6 +16,7 @@ import ChessAI
 import chessAi_handcraft
 import ChessEngine
 import pygame as p
+import numpy as np
 from tqdm import tqdm
 
 BOARD_WIDTH = BOARD_HEIGHT = 512
@@ -494,9 +495,37 @@ def animateMove(move, screen, board, clock):
         p.display.flip()
         clock.tick(60)
 
+def evaluate_position_with_fairy_stockfish(game_state):
+    FAIRY_STOCKFISH_PATH = (
+        os.path.join(".", "fairy-stockfish.exe")
+        if sys.platform == "win32"
+        else (
+            os.path.join(".", "fairy-stockfish_x86-64")
+            if sys.platform.startswith("linux")
+            else None
+        )
+    )
+    fen=ChessAI.convert_to_fen(game_state)
+    board = chess.Board(fen)
+    try:
+        with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
+            result = engine.analyse(board, chess.engine.Limit(depth=5))
+            score = result["score"]
+
+            if score.is_mate():
+                # Use score.white().mate() if you want White's POV, or score.relative.mate() for side-to-move POV
+                mate_val = score.white().mate()
+                eval_score = 100000 if mate_val > 0 else -100000
+            else:
+                eval_score = score.white().score()
+        return eval_score
+    except Exception as e:
+        print(f"[Error] 評估失敗：{e} 在chessMain.py")
+        return 0
 
 def run_single_game(dummy_arg, player_one, player_two):
     game_state = ChessEngine.GameState()
+    step_scores=[]
     try:
         while not game_state.checkmate and not game_state.stalemate:
             white_to_move = game_state.white_to_move
@@ -520,6 +549,7 @@ def run_single_game(dummy_arg, player_one, player_two):
             if move is None:
                 move = valid_moves[0]
             game_state.makeMove(move)
+            step_scores.append(evaluate_position_with_fairy_stockfish(game_state))
     except Exception as e:
         if "Maximum number of moves" in str(e):
             return "over200"  # "Maximum number of moves (200) exceeded."
@@ -528,11 +558,68 @@ def run_single_game(dummy_arg, player_one, player_two):
 
     if game_state.checkmate:
         winner_color = "White" if not game_state.white_to_move else "Black"
-        return winner_color
+        return winner_color,step_scores
     elif game_state.stalemate:
-        return "Draw"
+        return "Draw",step_scores
     else:
-        return "Unknown"
+        return "Unknown",step_scores
+    
+def output_result(results,player_one, player_two):
+
+    counts = {
+        "White": 0,
+        "Black": 0,
+        "Draw": 0,
+        "Unknown": 0
+    }
+
+    # To accumulate sums and counts per index for valid values
+    sums = []
+    counts_per_index = []
+
+    # Define threshold for invalid values
+    INVALID_VALUES = {100000, -100000}
+
+    # Process the data
+    for label, values in results:
+        if label in counts:
+            counts[label] += 1
+        else:
+            counts[label] = 1
+
+        for i, val in enumerate(values):
+            if val in INVALID_VALUES:
+                continue  # skip invalid values
+
+            # Extend lists if needed
+            if i >= len(sums):
+                sums.append(val)
+                counts_per_index.append(1)
+            else:
+                sums[i] += val
+                counts_per_index[i] += 1
+
+    # Calculate averages (only where count > 0)
+    averages = [s / c for s, c in zip(sums, counts_per_index)]
+    num_games=len(results)
+    print(f"Out of {num_games} games:")
+    print(f"White ({player_one}) wins: {counts['White']} ({counts['White'] / num_games:.2%})")
+    print(f"Black ({player_two}) wins: {counts['Black']} ({counts['Black'] / num_games:.2%})")
+    print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
+    print(f"Unknown results: {counts['Unknown']}")
+
+    print("\nElement-wise averages (ignoring mate):")
+    print(f'the more positive, the better to White ({player_one})')
+    print([round(avg, 1) for avg in averages])
+    return
+    # Output
+    print("Counts:")
+    for label in ["white", "black", "Draw", "Unknown"]:
+        print(f"{label}: {counts.get(label, 0)}")
+
+    print("\nElement-wise averages (ignoring mate):")
+    print(f'the more positive, the better to white{label}')
+    print(averages)
 
 
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
@@ -545,35 +632,17 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
             pool.imap_unordered(func, range(num_games)), total=num_games
         ):
             results.append(result)
-
-    white_wins = results.count("White")
-    black_wins = results.count("Black")
-    # over200 = results.count("over200")
-    draws = results.count("Draw")
-
-    print(f"Out of {num_games} games:")
-    print(
-        f"White ({player_one}) wins: {white_wins} ({
-            white_wins /
-            num_games:.2%})"
-    )
-    print(
-        f"Black ({player_two}) wins: {black_wins} ({
-            black_wins /
-            num_games:.2%})"
-    )
-    print(f"Draws: {draws} ({draws / num_games:.2%})")
-    # print(f"over200: {over200} ({over200 / num_games:.2%})")
+    output_result(results,player_one, player_two)
 
 
 if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one = "ai_handcraft"
+    player_one = "ai_nnue"
     player_two = "ai_random"
 
     # to run the testing(DO NOT use human here)
     run_parallel_games(
-        player_one, player_two, num_games=100, num_workers=cpu_count() // 2
+        player_one, player_two, num_games=10, num_workers=cpu_count() // 2
     )
 
     # to run the game
