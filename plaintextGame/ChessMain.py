@@ -618,7 +618,7 @@ def output_result(results, player_one, player_two):
 
     print("\nElement-wise averages (ignoring mate):")
     print(f"the more positive, the better to White ({player_one})")
-    print([round(avg, 1) for avg in averages])
+    print([round(avg*100, 1) for avg in averages])
 
 
 
