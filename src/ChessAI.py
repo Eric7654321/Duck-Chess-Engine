@@ -9,6 +9,7 @@ import sys
 
 import chess
 import chess.engine
+
 from ChessEngine import \
     Move  # Added: import Move class to attach get_uci method
 

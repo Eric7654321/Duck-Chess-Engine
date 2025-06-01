@@ -12,13 +12,14 @@ import sys
 from multiprocessing import Pool, Process, Queue, cpu_count
 
 import chess.engine
-import ChessAI
-import chessAi_handcraft
-import ChessEngine
 import matplotlib.pyplot as plt
 import numpy as np
 import pygame as p
 from tqdm import tqdm
+
+import ChessAI
+import chessAi_handcraft
+import ChessEngine
 
 BOARD_WIDTH = BOARD_HEIGHT = 512
 MOVE_LOG_PANEL_WIDTH = 250
@@ -655,7 +656,8 @@ def output_result(results, player_one, player_two):
 
         result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
         os.makedirs(result_dir, exist_ok=True)
-        filename = os.path.join(result_dir, f"{player_one}_vs_{player_two}.svg")
+        filename = os.path.join(
+            result_dir, f"{player_one}_vs_{player_two}.svg")
 
         plt.tight_layout()
         plt.savefig(filename)
@@ -687,4 +689,4 @@ if __name__ == "__main__":
     )
 
     # to run the game
-    #main(player_one, player_two, visualize_game=True)
+    # main(player_one, player_two, visualize_game=True)
