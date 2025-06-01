@@ -1,2 +1,5 @@
 chess==1.11.2
 pygame==2.6.1
+tqdm==4.67.1
+numpy==2.2.6
+matplotlib==3.10.3

@@ -131,10 +131,10 @@ piece_position_scores["DD"] = duck_scores
 
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 2
+DEPTH = 100
 
 
-def findBestMove(game_state, valid_moves, return_queue):
+def findBestMove(game_state, valid_moves, return_queue, mode):
     """
     Find the best move considering duck chess rules.
     Handles both piece movement phase and duck movement phase.
@@ -153,15 +153,28 @@ def findBestMove(game_state, valid_moves, return_queue):
     else:
         # Piece movement phase - find best piece move
         if piece_moves:
-            random.shuffle(piece_moves)
-            findMoveNegaMaxAlphaBeta(
-                game_state,
-                piece_moves,
-                DEPTH,
-                -CHECKMATE,
-                CHECKMATE,
-                1 if game_state.white_to_move else -1,
-            )
+            if mode == "nnue":
+                random.shuffle(piece_moves)
+                nnueFindMoveNegaMaxAlphaBeta(
+                    game_state,
+                    piece_moves,
+                    DEPTH,
+                    -CHECKMATE,
+                    CHECKMATE,
+                    1 if game_state.white_to_move else -1,
+                )
+            elif mode == "handcraft":
+                random.shuffle(piece_moves)
+                next_move = handcraftFindMoveNegaMaxAlphaBeta(
+                    game_state,
+                    piece_moves,
+                    DEPTH,
+                    -CHECKMATE,
+                    CHECKMATE,
+                    1 if game_state.white_to_move else -1,
+                )
+            else:
+                raise NameError("no such ai here")
 
     return_queue.put(next_move)
 
@@ -238,8 +251,41 @@ def findBestDuckMove(game_state, valid_duck_moves):
     next_move = best_move if best_move else random.choice(valid_duck_moves)
 
 
-def findMoveNegaMaxAlphaBeta(
+def handcraftFindMoveNegaMaxAlphaBeta(
     game_state, valid_moves, depth, alpha, beta, turn_multiplier
+):
+    if depth == 0:
+        score = scoreBoard(game_state)
+        return turn_multiplier * score
+
+    best_move = None
+    best_score = -CHECKMATE
+    for move in valid_moves:
+        game_state.makeMove(move)
+        next_moves = game_state.getValidMoves()
+        # Skip duck moves when evaluating board state
+        piece_moves = [m for m in next_moves if not m.is_duck_move]
+        score = -handcraftFindMoveNegaMaxAlphaBeta(
+            game_state, piece_moves, depth - 1, -beta, -alpha, -turn_multiplier
+        )
+        game_state.undoMove()
+
+        if score > best_score:
+            best_score = score
+            if depth == DEPTH:
+                best_move = move
+        if best_score > alpha:
+            alpha = best_score
+        if alpha >= beta:
+            break
+    if depth == DEPTH:
+        return best_move
+    else:
+        return best_score
+
+
+def nnueFindMoveNegaMaxAlphaBeta(
+    game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
 ):
     # Modified: integrate Stockfish move at root and ensure full move search
     """
@@ -247,7 +293,7 @@ def findMoveNegaMaxAlphaBeta(
     """
     global next_move
     top_level = depth == DEPTH
-    # If at root depth, get Stockfish's recommended move first
+
     if top_level:
         try:
             # Use Fairy-Stockfish to get best move in UCI
@@ -271,7 +317,7 @@ def findMoveNegaMaxAlphaBeta(
                     game_state.makeMove(move)
                     next_moves = game_state.getValidMoves()
                     piece_moves = [m for m in next_moves if not m.is_duck_move]
-                    score = -findMoveNegaMaxAlphaBeta(
+                    score = -nnueFindMoveNegaMaxAlphaBeta(
                         game_state,
                         piece_moves,
                         depth - 1,
@@ -288,11 +334,15 @@ def findMoveNegaMaxAlphaBeta(
 
     if depth == 0:
         # Optionally combine Stockfish eval with positional eval
-        fs_score = evaluate_position_with_fairy_stockfish(game_state)
-        pos_score = scoreBoard(game_state)
+        if mode == "nnue":
+            score = evaluate_position_with_fairy_stockfish(game_state)
+        elif mode == "handcraft":
+            score = scoreBoard(game_state)
+        else:
+            raise ValueError("no such ai_model")
         # Weighted combination (80% Stockfish, 20% positional)
-        combined_score = fs_score * 0.8 + pos_score * 0.2
-        return turn_multiplier * combined_score
+        # combined_score = fs_score * 0.8 + pos_score * 0.2
+        return turn_multiplier * score
 
     best_score = -CHECKMATE
     best_move_local = None
@@ -301,7 +351,7 @@ def findMoveNegaMaxAlphaBeta(
         next_moves = game_state.getValidMoves()
         # Skip duck moves when evaluating board state
         piece_moves = [m for m in next_moves if not m.is_duck_move]
-        score = -findMoveNegaMaxAlphaBeta(
+        score = -nnueFindMoveNegaMaxAlphaBeta(
             game_state, piece_moves, depth - 1, -beta, -alpha, -turn_multiplier
         )
         game_state.undoMove()
@@ -358,11 +408,14 @@ def scoreBoard(game_state):
     return score
 
 
-def findRandomMove(valid_moves):
+def findRandomMove(valid_moves, return_queue):
     """
-    Picks and returns a random valid move.
+    Picks a random valid move and puts it into the return_queue.
     """
-    return random.choice(valid_moves)
+    import random
+
+    move = random.choice(valid_moves)
+    return_queue.put(move)
 
 
 def evaluate_position_with_fairy_stockfish(game_state):

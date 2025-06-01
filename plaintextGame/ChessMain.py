@@ -4,14 +4,21 @@ Handling user input.
 Displaying current GameStatus object.
 """
 
+import functools
 import os
+import queue
+import random
 import sys
-from multiprocessing import Process, Queue
+from multiprocessing import Pool, Process, Queue, cpu_count
 
 import chess.engine
 import ChessAI
+import chessAi_handcraft
 import ChessEngine
+import matplotlib.pyplot as plt
+import numpy as np
 import pygame as p
+from tqdm import tqdm
 
 BOARD_WIDTH = BOARD_HEIGHT = 512
 MOVE_LOG_PANEL_WIDTH = 250
@@ -49,41 +56,95 @@ def loadImages():
         )
 
 
-def main():
-    """
-    The main driver for our code.
-    This will handle user input and updating the graphics.
-    Now handles duck chess two-phase turns.
-    """
+def is_ai_player(player_type):
+    return player_type in ("ai_random", "ai_handcraft", "ai_nnue")
+
+
+def run_ai_vs_ai(game_state, player_one, player_two):
+    import queue
+
+    while not game_state.checkmate and not game_state.stalemate:
+        white_to_move = game_state.white_to_move
+        player_type = player_one if white_to_move else player_two
+        valid_moves = game_state.getValidMoves()
+
+        if not valid_moves:
+            break
+
+        if player_type == "ai_random":
+            q = queue.Queue()
+            ChessAI.findRandomMove(valid_moves, q)
+            move = q.get()
+        else:
+            mode = player_type.split("_")[1]  # 'handcraft' or 'nnue'
+            q = queue.Queue()
+            ChessAI.findBestMove(game_state, valid_moves, q, mode=mode)
+            move = q.get()
+
+        game_state.makeMove(move)
+
+    if game_state.checkmate:
+        # The side to move is checkmated, so the other side won
+        winner_color = "White" if not game_state.white_to_move else "Black"
+        loser_color = "Black" if winner_color == "White" else "White"
+        winner_type = player_one if winner_color == "White" else player_two
+        loser_type = player_two if loser_color == "Black" else player_one
+        print(
+            f"Checkmate! {winner_color} ({winner_type}) beats over "
+            f"{loser_color} ({loser_type}) the game!"
+        )
+    elif game_state.stalemate:
+        print("Game ended in a stalemate (draw).")
+    else:
+        print("Game ended without checkmate or stalemate.")
+
+
+def main(player_one, player_two, visualize_game=True):
+    # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
+    # player_one = "ai_handcraft"  # white
+    # player_two = "ai_random"  # black
+    # visualize_game = True  # True to show pygame UI, False to run silently
+    # if AI vs AI
+
+    if visualize_game is False:
+        # If any player is human, can't run non-visual mode
+        if not (is_ai_player(player_one) and is_ai_player(player_two)):
+            raise ValueError(
+                "Non-visual mode only supports AI vs AI (no human players)."
+            )
+        # Run silent AI vs AI mode
+        game_state = ChessEngine.GameState()
+        run_ai_vs_ai(game_state, player_one, player_two)
+        return
+
+    # If visualize_game is True, run pygame UI mode (human or AI players)
     p.init()
+
     screen = p.display.set_mode(
         (BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
-    game_state = ChessEngine.GameState()
 
+    title = f"Black: {player_two}   White: {player_one}"
+    p.display.set_caption(title)
+
+    game_state = ChessEngine.GameState()
     valid_moves = game_state.getValidMoves()
-    move_made = False  # flag variable for when a move is made
-    animate = False  # flag variable for when we should animate a move
-    loadImages()  # do this only once before while loop
+    move_made = False
+    animate = False
+    loadImages()
     running = True
-    square_selected = ()  # no square is selected initially
-    player_clicks = []  # this will keep track of player clicks (two tuples)
+    square_selected = ()
+    player_clicks = []
     game_over = False
     ai_thinking = False
     move_undone = False
     move_finder_process = None
     move_log_font = p.font.SysFont("Arial", 14, False, False)
-    # play turn
-    player_one = True  # if a human is playing white, then this will be True, else False
-    player_two = False  # if a human is playing white, then this will be True, else False    player_one = True  # if a human is playing white, then this will be True, else False
-    # player_one = False  # if a human is playing white, then this will be True, else False    player_one = True  # if a human is playing white, then this will be True, else False
-    # player_two = True  # if a human is playing white, then this will be
-    # True, else False
 
     while running:
-        human_turn = (game_state.white_to_move and player_one) or (
-            not game_state.white_to_move and player_two
+        human_turn = (game_state.white_to_move and player_one == "human") or (
+            not game_state.white_to_move and player_two == "human"
         )
 
         # Duck move phase handling
@@ -177,17 +238,35 @@ def main():
         if not game_over and not human_turn and not move_undone:
             if not ai_thinking:
                 ai_thinking = True
-                return_queue = Queue()  # used to pass data between threads
-                move_finder_process = Process(
-                    target=ChessAI.findBestMove,
-                    args=(game_state, valid_moves, return_queue),
-                )
+                return_queue = Queue()
+                current_player = player_one if game_state.white_to_move else player_two
+
+                if current_player == "ai_random":
+                    move_finder_process = Process(
+                        target=ChessAI.findRandomMove, args=(
+                            valid_moves, return_queue))
+                elif current_player == "ai_handcraft":
+                    move_finder_process = Process(
+                        target=chessAi_handcraft.findBestMove,
+                        args=(game_state, valid_moves, return_queue),
+                    )
+                elif current_player == "ai_nnue":
+                    move_finder_process = Process(
+                        target=ChessAI.findBestMove,
+                        args=(game_state, valid_moves, return_queue, "nnue"),
+                    )
+                else:
+                    raise NameError("no such ai")
+                    move_finder_process = Process(
+                        target=ChessAI.findRandomMove, args=(
+                            valid_moves, return_queue))
                 move_finder_process.start()
 
             if not move_finder_process.is_alive():
                 ai_move = return_queue.get()
                 if ai_move is None:
-                    ai_move = ChessAI.findRandomMove(valid_moves)
+                    # ai_move = ChessAI.findRandomMove(valid_moves,ai_move)
+                    ai_move = random.choice(valid_moves)
                 game_state.makeMove(ai_move)
                 move_made = True
                 animate = True
@@ -378,7 +457,7 @@ def animateMove(move, screen, board, clock):
     global colors
     d_row = move.end_row - move.start_row
     d_col = move.end_col - move.start_col
-    frames_per_square = 10  # frames to move one square
+    frames_per_square = 1  # frames to move one square
     frame_count = (abs(d_row) + abs(d_col)) * frames_per_square
     for frame in range(frame_count + 1):
         row, col = (
@@ -418,5 +497,196 @@ def animateMove(move, screen, board, clock):
         clock.tick(60)
 
 
+def evaluate_position_with_fairy_stockfish(game_state):
+    FAIRY_STOCKFISH_PATH = (
+        os.path.join(".", "fairy-stockfish.exe")
+        if sys.platform == "win32"
+        else (
+            os.path.join(".", "fairy-stockfish_x86-64")
+            if sys.platform.startswith("linux")
+            else None
+        )
+    )
+    fen = ChessAI.convert_to_fen(game_state)
+    board = chess.Board(fen)
+    try:
+        with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
+            result = engine.analyse(board, chess.engine.Limit(depth=5))
+            score = result["score"]
+
+            if score.is_mate():
+                # Use score.white().mate() if you want White's POV, or
+                # score.relative.mate() for side-to-move POV
+                mate_val = score.white().mate()
+                eval_score = 100000 if mate_val > 0 else -100000
+            else:
+                eval_score = score.white().score()
+        return eval_score
+    except Exception as e:
+        print(f"[Error] 評估失敗：{e} 在chessMain.py")
+        return 0
+
+
+def run_single_game(dummy_arg, player_one, player_two):
+    game_state = ChessEngine.GameState()
+    step_scores = []
+    try:
+        while not game_state.checkmate and not game_state.stalemate:
+            white_to_move = game_state.white_to_move
+            player_type = player_one if white_to_move else player_two
+            valid_moves = game_state.getValidMoves()
+            if not valid_moves:
+                break
+
+            q = queue.Queue()
+            if player_type == "ai_random":
+                ChessAI.findRandomMove(valid_moves, q)
+            else:
+                mode = player_type.split("_")[1]  # e.g. 'handcraft', 'nnue'
+                if mode == "nnue":
+                    ChessAI.findBestMove(game_state, valid_moves, q, mode=mode)
+                elif mode == "handcraft":
+                    chessAi_handcraft.findBestMove(game_state, valid_moves, q)
+                else:
+                    raise ValueError("here's bug fix it")
+            move = q.get()
+            if move is None:
+                move = valid_moves[0]
+            game_state.makeMove(move)
+            step_scores.append(
+                evaluate_position_with_fairy_stockfish(game_state))
+    except Exception as e:
+        if "Maximum number of moves" in str(e):
+            return "over200"  # "Maximum number of moves (200) exceeded."
+        else:
+            raise  # re-raise any other exceptions
+
+    if game_state.checkmate:
+        winner_color = "White" if not game_state.white_to_move else "Black"
+        return winner_color, step_scores
+    elif game_state.stalemate:
+        return "Draw", step_scores
+    else:
+        return "Unknown", step_scores
+
+
+def output_result(results, player_one, player_two):
+
+    counts = {"White": 0, "Black": 0, "Draw": 0, "Unknown": 0}
+
+    # To accumulate sums and counts per index for valid values
+    sums = []
+    counts_per_index = []
+
+    # Define threshold for invalid values
+    INVALID_VALUES = {100000, -100000}
+
+    # Process the data
+    for label, values in results:
+        if label in counts:
+            counts[label] += 1
+        else:
+            counts[label] = 1
+
+        for i, val in enumerate(values):
+            if val in INVALID_VALUES:
+                continue  # skip invalid values
+
+            # Extend lists if needed
+            if i >= len(sums):
+                sums.append(val)
+                counts_per_index.append(1)
+            else:
+                sums[i] += val
+                counts_per_index[i] += 1
+
+    # Calculate averages (only where count > 0)
+    averages = [s / c for s, c in zip(sums, counts_per_index)]
+    num_games = len(results)
+    print(f"Out of {num_games} games:")
+    print(
+        f"White ({player_one}) wins: {
+            counts['White']} ({
+            counts['White'] /
+            num_games:.2%})"
+    )
+    print(
+        f"Black ({player_two}) wins: {
+            counts['Black']} ({
+            counts['Black'] /
+            num_games:.2%})"
+    )
+    print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
+    print(f"Unknown results: {counts['Unknown']}")
+
+    averages = [round(avg / 100, 1) for avg in averages]
+    # Create the plot
+    plt.figure(figsize=(12, 6))
+    plt.plot(
+        range(
+            1,
+            len(averages) +
+            1),
+        averages,
+        marker="o",
+        linestyle="-",
+        linewidth=1)
+
+    # Titles and labels
+    plt.title(
+        f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})",
+        fontsize=14,
+    )
+    plt.xlabel("Move")
+    plt.ylabel("Evaluation Score")
+    plt.grid(True)
+
+    # Add winrate comment in top-left corner
+    plt.text(
+        0.01,
+        0.95,
+        f"White({player_one}) Winrate: {
+            counts['White'] /
+            num_games:.1%}\nBlack({player_two}) Winrate: {
+            counts['Black'] /
+            num_games:.1%}",
+        transform=plt.gca().transAxes,
+        fontsize=10,
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+    )
+
+    result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
+    os.makedirs(result_dir, exist_ok=True)
+    filename = os.path.join(result_dir, f"{player_one}vs{player_two}.png")
+
+    plt.tight_layout()
+    plt.savefig(filename)
+
+    print(f"Plot saved as: {filename}")
+
+
+def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
+    func = functools.partial(
+        run_single_game, player_one=player_one, player_two=player_two
+    )
+    with Pool(processes=num_workers) as pool:
+        results = []
+        for result in tqdm(
+            pool.imap_unordered(func, range(num_games)), total=num_games
+        ):
+            results.append(result)
+    output_result(results, player_one, player_two)
+
+
 if __name__ == "__main__":
-    main()
+    # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
+    player_one = "ai_random"
+    player_two = "ai_handcraft"
+
+    # to run the testing(DO NOT use human here)
+    run_parallel_games(
+        player_one, player_two, num_games=100, num_workers=cpu_count() // 2
+    )
+
+    # to run the game
+    # main(player_one, player_two,visualize_game=True)

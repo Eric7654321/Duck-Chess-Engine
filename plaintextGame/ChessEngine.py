@@ -26,7 +26,7 @@ class GameState:
         ]
 
         # 初始化鴨子位置 (確保不在已有棋子的位置)
-        self.duck_location = (4, 4)  # 初始位置在中心
+        self.duck_location = (3, 3)  # 初始位置在中心
         assert (
             self.board[self.duck_location[0]][self.duck_location[1]] == "--"
         ), "Duck initial position occupied!"
@@ -74,12 +74,18 @@ class GameState:
                 self.current_castling_rights.bqs,
             )
         ]  # 修正拼寫錯誤
+        # counts half-moves (ply) since last capture
+        self.no_capture_move_count = 0
 
     def makeMove(self, move):
         """
         Takes a Move as a parameter and executes it.
         Now handles duck moves and two-phase turns.
         """
+        # 超過200
+        # if len(self.move_log) > 200:
+        #    raise Exception("Maximum number of moves (200) exceeded.")
+
         if not move.is_duck_move:  # 普通棋子移動
             self.board[move.start_row][move.start_col] = "--"
             self.board[move.end_row][move.end_col] = move.piece_moved
@@ -155,6 +161,14 @@ class GameState:
                     self.current_castling_rights.bqs,
                 )
             )
+        if not move.is_capture:
+            self.no_capture_move_count += 1
+        else:
+            self.no_capture_move_count = 0
+
+        # Check for 50 half-move no capture rule to declare draw
+        if self.no_capture_move_count >= 50:
+            self.stalemate = True
 
     def undoMove(self):
         """
@@ -216,6 +230,12 @@ class GameState:
 
             self.checkmate = False
             self.stalemate = False
+            count = 0
+            for past_move in reversed(self.move_log):
+                if past_move.is_capture:
+                    break
+                count += 1
+            self.no_capture_move_count = count
 
     def updateCastleRights(self, move):
         """
