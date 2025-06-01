@@ -607,12 +607,14 @@ def output_result(results, player_one, player_two):
         f"White ({player_one}) wins: {
             counts['White']} ({
             counts['White'] /
-            num_games:.2%})")
+            num_games:.2%})"
+    )
     print(
         f"Black ({player_two}) wins: {
             counts['Black']} ({
             counts['Black'] /
-            num_games:.2%})")
+            num_games:.2%})"
+    )
     print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
     print(f"Over 200 moves: {counts['over200']}")
 
@@ -648,10 +650,7 @@ def output_result(results, player_one, player_two):
                 num_games:.1%}",
             transform=plt.gca().transAxes,
             fontsize=10,
-            bbox=dict(
-                boxstyle="round",
-                facecolor="white",
-                alpha=0.7),
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
         )
 
         result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
