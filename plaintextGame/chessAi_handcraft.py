@@ -111,6 +111,12 @@ def findBestMove(game_state, valid_moves, return_queue):
     global next_move
     next_move = None
 
+    enemy_king = "bK" if game_state.white_to_move else "wK"
+    for move in valid_moves:
+        if not move.is_duck_move and move.piece_captured == enemy_king:
+            return_queue.put(move)
+            return
+
     # Only consider piece moves at the root
     piece_moves = [m for m in valid_moves if not m.is_duck_move]
     _ = negamax_full(game_state, piece_moves, DEPTH, -CHECKMATE, CHECKMATE, 1)
@@ -119,6 +125,14 @@ def findBestMove(game_state, valid_moves, return_queue):
 
 def negamax_full(game_state, moves, depth, alpha, beta, color):
     global next_move
+
+    enemy_king = "bK" if game_state.white_to_move else "wK"
+    for move in moves:
+        if move.piece_captured == enemy_king:
+            if depth == DEPTH:
+                next_move = move
+            return color * CHECKMATE
+
     # Base case
     if depth == 0 or not moves:
         return color * scoreBoard(game_state)
@@ -187,138 +201,18 @@ def negamax_full(game_state, moves, depth, alpha, beta, color):
     return max_score
 
 
-'''
-CHECKMATE = 1000
-STALEMATE = 0
-DEPTH = 100
-
-
-def findBestMove(game_state, valid_moves, return_queue):
-    """
-    Find the best move considering duck chess rules.
-    Handles both piece movement phase and duck movement phase.
-    """
-    global next_move
-    next_move = None
-
-    # Separate duck moves from piece moves
-    duck_moves = [move for move in valid_moves if move.is_duck_move]
-    piece_moves = [move for move in valid_moves if not move.is_duck_move]
-
-    if game_state.duck_move_phase:
-        # Duck movement phase - find best duck move
-        if duck_moves:
-            findBestDuckMove(game_state, duck_moves)
-    else:
-        # Piece movement phase - find best piece move
-        if piece_moves:
-            random.shuffle(piece_moves)
-            findMoveNegaMaxAlphaBeta(game_state, piece_moves, DEPTH, -CHECKMATE, CHECKMATE,
-                                     1 if game_state.white_to_move else -1)
-
-    return_queue.put(next_move)
-
-
-def findBestDuckMove(game_state, valid_duck_moves):
-    """
-    Find the best duck move based on strategic positioning.
-    """
-    global next_move
-    best_score = -math.inf
-    best_move = None
-
-    for move in valid_duck_moves:
-        # Score based on position (center is better)
-        row, col = move.end_row, move.end_col
-        position_score = duck_scores[row][col]
-
-        # Additional strategic considerations:
-        # 1. Block enemy pieces
-        # 2. Don't block our own pieces
-        # 3. Stay away from enemy king (to avoid blocking checks)
-
-        # Calculate blocking score
-        blocking_score = 0
-        enemy_color = 'b' if game_state.white_to_move else 'w'
-
-        # Check if duck is blocking enemy pieces
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
-        for dr, dc in directions:
-            for i in range(1, 8):
-                r, c = row + dr * i, col + dc * i
-                if 0 <= r < 8 and 0 <= c < 8:
-                    piece = game_state.board[r][c]
-                    if piece == "--":
-                        continue
-                    if piece[0] == enemy_color and piece[1] in ['Q', 'R', 'B']:
-                        blocking_score += 1  # bonus for blocking enemy sliding pieces
-                    break
-
-        # Penalize if blocking our own pieces
-        own_piece_penalty = 0
-        for dr, dc in directions:
-            for i in range(1, 8):
-                r, c = row + dr * i, col + dc * i
-                if 0 <= r < 8 and 0 <= c < 8:
-                    piece = game_state.board[r][c]
-                    if piece == "--":
-                        continue
-                    if piece[0] == ('w' if game_state.white_to_move else 'b'):
-                        own_piece_penalty += 1  # penalty for blocking our own pieces
-                    break
-
-        total_score = position_score * 10 + blocking_score - own_piece_penalty
-
-        if total_score > best_score:
-            best_score = total_score
-            best_move = move
-
-    next_move = best_move if best_move else random.choice(valid_duck_moves)
-
-
-def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_multiplier):
-    """
-    NegaMax algorithm with alpha-beta pruning for piece moves.
-    """
-    global next_move
-    if depth == 0:
-        return turn_multiplier * scoreBoard(game_state)
-
-    max_score = -CHECKMATE
-    for move in valid_moves:
-        game_state.makeMove(move)
-        next_moves = game_state.getValidMoves()
-
-        # Skip duck moves when evaluating board state
-        piece_moves = [m for m in next_moves if not m.is_duck_move]
-
-        score = -findMoveNegaMaxAlphaBeta(game_state, piece_moves, depth - 1, -beta, -alpha, -turn_multiplier)
-
-        if score > max_score:
-            max_score = score
-            if depth == DEPTH:
-                next_move = move
-        game_state.undoMove()
-        if max_score > alpha:
-            alpha = max_score
-        if alpha >= beta:
-            break
-    return max_score
-'''
-
-
 def scoreBoard(game_state):
     """
     Score the board. A positive score is good for white, a negative score is good for black.
     Now considers duck position in evaluation.
     """
-    if game_state.checkmate:
-        if game_state.white_to_move:
-            return -CHECKMATE  # black wins
+    if game_state.game_over:
+        if game_state.winner == 'w':
+            return CHECKMATE
+        elif game_state.winner == 'b':
+            return -CHECKMATE
         else:
-            return CHECKMATE  # white wins
-    elif game_state.stalemate:
-        return STALEMATE
+            return STALEMATE  # 平局
 
     score = 0
     for row in range(len(game_state.board)):

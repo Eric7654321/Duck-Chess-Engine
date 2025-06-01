@@ -63,7 +63,7 @@ def is_ai_player(player_type):
 def run_ai_vs_ai(game_state, player_one, player_two):
     import queue
 
-    while not game_state.checkmate and not game_state.stalemate:
+    while not game_state.game_over:
         white_to_move = game_state.white_to_move
         player_type = player_one if white_to_move else player_two
         valid_moves = game_state.getValidMoves()
@@ -83,20 +83,24 @@ def run_ai_vs_ai(game_state, player_one, player_two):
 
         game_state.makeMove(move)
 
-    if game_state.checkmate:
-        # The side to move is checkmated, so the other side won
-        winner_color = "White" if not game_state.white_to_move else "Black"
-        loser_color = "Black" if winner_color == "White" else "White"
-        winner_type = player_one if winner_color == "White" else player_two
-        loser_type = player_two if loser_color == "Black" else player_one
+    if game_state.winner == "w":
+        winner_color = "White"
+        loser_color = "Black"
+        winner_type = player_one
+        loser_type = player_two
         print(
-            f"Checkmate! {winner_color} ({winner_type}) beats over "
-            f"{loser_color} ({loser_type}) the game!"
+            f"White ({winner_type}) wins over Black ({loser_type}) by capturing the king!"
         )
-    elif game_state.stalemate:
-        print("Game ended in a stalemate (draw).")
+    elif game_state.winner == "b":
+        winner_color = "Black"
+        loser_color = "White"
+        winner_type = player_two
+        loser_type = player_one
+        print(
+            f"Black ({winner_type}) wins over White ({loser_type}) by capturing the king!"
+        )
     else:
-        print("Game ended without checkmate or stalemate.")
+        print("Game ended in a draw.")
 
 
 def main(player_one, player_two, visualize_game=True):
@@ -243,8 +247,7 @@ def main(player_one, player_two, visualize_game=True):
 
                 if current_player == "ai_random":
                     move_finder_process = Process(
-                        target=ChessAI.findRandomMove, args=(
-                            valid_moves, return_queue))
+                        target=ChessAI.findRandomMove, args=(valid_moves, return_queue))
                 elif current_player == "ai_handcraft":
                     move_finder_process = Process(
                         target=chessAi_handcraft.findBestMove,
@@ -258,8 +261,7 @@ def main(player_one, player_two, visualize_game=True):
                 else:
                     raise NameError("no such ai")
                     move_finder_process = Process(
-                        target=ChessAI.findRandomMove, args=(
-                            valid_moves, return_queue))
+                        target=ChessAI.findRandomMove, args=(valid_moves, return_queue))
                 move_finder_process.start()
 
             if not move_finder_process.is_alive():
@@ -303,16 +305,14 @@ def main(player_one, player_two, visualize_game=True):
         if not game_over:
             drawMoveLog(screen, game_state, move_log_font)
 
-        if game_state.checkmate:
+        if game_state.game_over:
             game_over = True
-            if game_state.white_to_move:
-                drawEndGameText(screen, "Black wins by checkmate")
+            if game_state.winner == "w":
+                drawEndGameText(screen, "White wins!")
+            elif game_state.winner == "b":
+                drawEndGameText(screen, "Black wins!")
             else:
-                drawEndGameText(screen, "White wins by checkmate")
-
-        elif game_state.stalemate:
-            game_over = True
-            drawEndGameText(screen, "Stalemate")
+                drawEndGameText(screen, "Game drawn!")
 
         clock.tick(MAX_FPS)
         p.display.flip()
@@ -531,7 +531,7 @@ def run_single_game(dummy_arg, player_one, player_two):
     game_state = ChessEngine.GameState()
     step_scores = []
     try:
-        while not game_state.checkmate and not game_state.stalemate:
+        while not game_state.game_over:
             white_to_move = game_state.white_to_move
             player_type = player_one if white_to_move else player_two
             valid_moves = game_state.getValidMoves()
@@ -561,18 +561,17 @@ def run_single_game(dummy_arg, player_one, player_two):
         else:
             raise  # re-raise any other exceptions
 
-    if game_state.checkmate:
-        winner_color = "White" if not game_state.white_to_move else "Black"
-        return winner_color, step_scores
-    elif game_state.stalemate:
-        return "Draw", step_scores
+    if game_state.winner == "w":
+        return "White", step_scores
+    elif game_state.winner == "b":
+        return "Black", step_scores
     else:
-        return "Unknown", step_scores
+        return "Draw", step_scores
 
 
 def output_result(results, player_one, player_two):
 
-    counts = {"White": 0, "Black": 0, "Draw": 0, "Unknown": 0}
+    counts = {"White": 0, "Black": 0, "Draw": 0, "over200": 0}
 
     # To accumulate sums and counts per index for valid values
     sums = []
@@ -601,68 +600,59 @@ def output_result(results, player_one, player_two):
                 counts_per_index[i] += 1
 
     # Calculate averages (only where count > 0)
-    averages = [s / c for s, c in zip(sums, counts_per_index)]
+    averages = [s / c for s, c in zip(sums, counts_per_index)] if sums else []
     num_games = len(results)
     print(f"Out of {num_games} games:")
     print(
-        f"White ({player_one}) wins: {
-            counts['White']} ({
-            counts['White'] /
-            num_games:.2%})"
+        f"White ({player_one}) wins: {counts['White']} ({counts['White'] /num_games:.2%})"
     )
     print(
-        f"Black ({player_two}) wins: {
-            counts['Black']} ({
-            counts['Black'] /
-            num_games:.2%})"
+        f"Black ({player_two}) wins: {counts['Black']} ({counts['Black'] /num_games:.2%})"
     )
     print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
-    print(f"Unknown results: {counts['Unknown']}")
+    print(f"Over 200 moves: {counts['over200']}")
 
-    averages = [round(avg / 100, 1) for avg in averages]
-    # Create the plot
-    plt.figure(figsize=(12, 6))
-    plt.plot(
-        range(
-            1,
-            len(averages) +
+    if averages:
+        averages = [round(avg / 100, 1) for avg in averages]
+        # Create the plot
+        plt.figure(figsize=(12, 6))
+        plt.plot(
+            range(
+                1,
+                len(averages) +
             1),
-        averages,
-        marker="o",
-        linestyle="-",
-        linewidth=1)
+            averages,
+            marker="o",
+            linestyle="-",
+            linewidth=1)
 
-    # Titles and labels
-    plt.title(
-        f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})",
-        fontsize=14,
-    )
-    plt.xlabel("Move")
-    plt.ylabel("Evaluation Score")
-    plt.grid(True)
+        # Titles and labels
+        plt.title(
+            f"Step-wise Averages White {player_one} vs Black {player_two}\nThe more positive, the better to White ({player_one})",
+            fontsize=14,
+        )
+        plt.xlabel("Move")
+        plt.ylabel("Evaluation Score")
+        plt.grid(True)
 
-    # Add winrate comment in top-left corner
-    plt.text(
-        0.01,
-        0.95,
-        f"White({player_one}) Winrate: {
-            counts['White'] /
-            num_games:.1%}\nBlack({player_two}) Winrate: {
-            counts['Black'] /
-            num_games:.1%}",
-        transform=plt.gca().transAxes,
-        fontsize=10,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
-    )
+        # Add winrate comment in top-left corner
+        plt.text(
+            0.01,
+            0.95,
+            f"White({player_one}) Winrate: {counts['White'] /num_games:.1%}\nBlack({player_two}) Winrate: {counts['Black'] /num_games:.1%}",
+            transform=plt.gca().transAxes,
+            fontsize=10,
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+        )
 
-    result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
-    os.makedirs(result_dir, exist_ok=True)
-    filename = os.path.join(result_dir, f"{player_one}vs{player_two}.png")
+        result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
+        os.makedirs(result_dir, exist_ok=True)
+        filename = os.path.join(result_dir, f"{player_one}vs{player_two}.png")
 
-    plt.tight_layout()
-    plt.savefig(filename)
+        plt.tight_layout()
+        plt.savefig(filename)
 
-    print(f"Plot saved as: {filename}")
+        print(f"Plot saved as: {filename}")
 
 
 def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
@@ -680,13 +670,13 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 
 if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one = "ai_random"
-    player_two = "ai_handcraft"
+    player_one = "human"
+    player_two = "ai_nnue"
 
     # to run the testing(DO NOT use human here)
-    run_parallel_games(
-        player_one, player_two, num_games=100, num_workers=cpu_count() // 2
-    )
+    # run_parallel_games(
+    #     player_one, player_two, num_games=100, num_workers=cpu_count() // 2
+    # )
 
     # to run the game
-    # main(player_one, player_two,visualize_game=True)
+    main(player_one, player_two, visualize_game=True)

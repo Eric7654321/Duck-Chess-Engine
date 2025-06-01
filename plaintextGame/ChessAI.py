@@ -279,24 +279,34 @@ def handcraftFindMoveNegaMaxAlphaBeta(
         if alpha >= beta:
             break
     if depth == DEPTH:
+        enemy_king = "bK" if game_state.white_to_move else "wK"
+        for move in valid_moves:
+            if move.piece_captured == enemy_king:
+                return move
         return best_move
     else:
         return best_score
 
 
 def nnueFindMoveNegaMaxAlphaBeta(
-    game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
+        game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
 ):
-    # Modified: integrate Stockfish move at root and ensure full move search
-    """
-    NegaMax algorithm with alpha-beta pruning for piece moves.
-    """
     global next_move
     top_level = depth == DEPTH
 
+    enemy_king = "bK" if game_state.white_to_move else "wK"
+    for move in valid_moves:
+        if move.piece_captured == enemy_king:
+            next_move = move
+            return CHECKMATE  # 直接返回最高分
+
     if top_level:
         try:
-            # Use Fairy-Stockfish to get best move in UCI
+            castle_moves = [m for m in valid_moves if m.is_castle_move]
+            if castle_moves:
+                next_move = random.choice(castle_moves)
+                return 500
+
             fen = convert_to_fen(game_state)
             with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
                 engine.configure(
@@ -307,41 +317,25 @@ def nnueFindMoveNegaMaxAlphaBeta(
                     }
                 )
                 board = chess.Board(fen)
-                result = engine.play(board, chess.engine.Limit(time=0.5))
+                result = engine.play(board, chess.engine.Limit(time=1.0))
                 best_uci = result.move.uci()
-            # Find corresponding Move object in valid_moves
             for move in valid_moves:
                 if move.get_uci() == best_uci:
-                    # Use this as next_move and evaluate one-ply deeper
-                    next_move = move  # prioritize Stockfish move
-                    game_state.makeMove(move)
-                    next_moves = game_state.getValidMoves()
-                    piece_moves = [m for m in next_moves if not m.is_duck_move]
-                    score = -nnueFindMoveNegaMaxAlphaBeta(
-                        game_state,
-                        piece_moves,
-                        depth - 1,
-                        -beta,
-                        -alpha,
-                        -turn_multiplier,
-                    )
-                    game_state.undoMove()
-                    return score
+                    next_move = move
+                    break
+            if next_move is None and valid_moves:
+                next_move = valid_moves[0]
+            return 0
         except Exception as e:
-            # If engine fails, proceed with regular search
-            print(f"[DEBUG] Stockfish move not used due to error: {e}")
-            pass
+            print(f"[DEBUG] Stockfish错误: {e}")
+            next_move = random.choice(valid_moves) if valid_moves else None
+            return 0
 
     if depth == 0:
-        # Optionally combine Stockfish eval with positional eval
-        if mode == "nnue":
+        try:
             score = evaluate_position_with_fairy_stockfish(game_state)
-        elif mode == "handcraft":
-            score = scoreBoard(game_state)
-        else:
-            raise ValueError("no such ai_model")
-        # Weighted combination (80% Stockfish, 20% positional)
-        # combined_score = fs_score * 0.8 + pos_score * 0.2
+        except:
+            score = scoreBoard(game_state)  # 备用评估
         return turn_multiplier * score
 
     best_score = -CHECKMATE
@@ -349,7 +343,7 @@ def nnueFindMoveNegaMaxAlphaBeta(
     for move in valid_moves:
         game_state.makeMove(move)
         next_moves = game_state.getValidMoves()
-        # Skip duck moves when evaluating board state
+        # 跳过鸭子移动
         piece_moves = [m for m in next_moves if not m.is_duck_move]
         score = -nnueFindMoveNegaMaxAlphaBeta(
             game_state, piece_moves, depth - 1, -beta, -alpha, -turn_multiplier
@@ -374,13 +368,14 @@ def scoreBoard(game_state):
     Score the board. A positive score is good for white, a negative score is good for black.
     Now considers duck position in evaluation.
     """
-    if game_state.checkmate:
-        if game_state.white_to_move:
-            return -CHECKMATE  # black wins
+    # 检查游戏是否结束（例如王被吃掉）
+    if game_state.game_over:
+        if game_state.winner == 'w':
+            return CHECKMATE
+        elif game_state.winner == 'b':
+            return -CHECKMATE
         else:
-            return CHECKMATE  # white wins
-    elif game_state.stalemate:
-        return STALEMATE
+            return STALEMATE  # 平局
 
     score = 0
     for row in range(len(game_state.board)):
@@ -419,14 +414,11 @@ def findRandomMove(valid_moves, return_queue):
 
 
 def evaluate_position_with_fairy_stockfish(game_state):
-    # 轉換成 FEN 字串
-    fen = convert_to_fen(game_state)
-
-    # 初始化 fairy-stockfish 引擎
+    # 增加超時處理和備用評估
     try:
-        with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH) as engine:
-            print("[DEBUG] FEN passed to Stockfish:", fen)
-            # 設定 NNUE 模型路徑（若有需要）
+        fen = convert_to_fen(game_state)
+        with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH, timeout=10) as engine:
+            # 設定NNUE模型路徑
             engine.configure(
                 {
                     "UCI_EvalFile": os.path.join(
@@ -435,20 +427,24 @@ def evaluate_position_with_fairy_stockfish(game_state):
                 }
             )
 
-            # 計算 position 評分
+            # 計算position評分
             board = chess.Board(fen)
-            result = engine.analyse(board, chess.engine.Limit(time=0.5))
+            result = engine.analyse(board, chess.engine.Limit(time=0.5, nodes=1000))
             score = result["score"].white().score(mate_score=10000)
+
             if score is None:
-                score = 0
-            score = int(score)
-            return score if game_state.white_to_move else -score
+                # 如果Stockfish沒有返回分數，使用備用評估
+                return scoreBoard(game_state)
+
+            return int(score) if game_state.white_to_move else -int(score)
     except Exception as e:
-        print(f"[Error] 評估失敗：{e}")
-        return 0
+        print(f"[WARN] Stockfish評估失敗: {e}")
+        # 使用備用評估方法
+        return scoreBoard(game_state)
 
 
 def convert_to_fen(game_state):
+    # 改進FEN轉換函數，確保包含所有必要信息
     rows = []
     for r in range(8):
         empty = 0
@@ -473,6 +469,20 @@ def convert_to_fen(game_state):
 
     turn = "w" if game_state.white_to_move else "b"
 
-    # castling/en passant 先忽略或改進
-    fen = f"{board_fen} {turn} - - 0 1"
-    return fen
+    castle_rights = ""
+    if game_state.current_castling_rights.wks: castle_rights += "K"
+    if game_state.current_castling_rights.wqs: castle_rights += "Q"
+    if game_state.current_castling_rights.bks: castle_rights += "k"
+    if game_state.current_castling_rights.bqs: castle_rights += "q"
+    if castle_rights == "": castle_rights = "-"
+
+    en_passant = "-"
+    if game_state.enpassant_possible:
+        r, c = game_state.enpassant_possible
+        en_passant = f"{chr(97 + c)}{8 - r}"
+
+    halfmove = game_state.no_progress_count
+
+    fullmove = len(game_state.move_log) // 2 + 1
+
+    return f"{board_fen} {turn} {castle_rights} {en_passant} {halfmove} {fullmove}"
