@@ -7,35 +7,29 @@
 可參考這個網址：[什麼是鴨子棋](<https://www.chess.com/terms/duck-chess> "Title")
 ## 規劃架構
 ```bash
-duck-chess-engine/
-├── engine/
-│   ├── board.py           # 棋盤邏輯 + 鴨子支援
-│   ├── move_generator.py  # 走法產生器
-│   ├── search.py          # 搜尋演算法（Minimax, Alpha-Beta）
-│   └── nnue_eval.py       # 評估函數（使用 PyTorch）
-├── api/
-│   ├── main.py            # FastAPI 伺服器
-│   └── websocket.py       # WebSocket 互動邏輯
-├── web/                   # 前端（React 或其他）
-│   └── ...
-├── models/
-│   └── nnue_model.pth     # 預訓練模型檔
-├── tests/
-│   └── test_engine.py
-├── plaintextGame/         # pygame版本
-│   ├── images             # 棋類圖檔
-│   │   └── ...
-│   ├── ChessAI.py         # 遊戲AI實作
-│   ├── ChessEngine.py     # 遊戲引擎與行棋邏輯
-│   └── ChessMain.py       # 遊戲執行主程式
-├── requirements.txt
-└── README.md
+└─Duck-Chess-Engine
+    │  .gitignore
+    │  README.md
+    │  requirements.txt
+    ├─results //store results
+    └─src
+        │  ChessAI.py //chess nnue part
+        │  chessAi_handcraft.py //chess handcraft eval part
+        │  ChessEngine.py //chess engine modified for duck one
+        │  ChessMain.py //visulization and invoke game
+        │  duck-ba21f91f5d81.nnue //model for nnue
+        │  fairy-stockfish.exe //for stockfish eval .exe
+        │  fairy-stockfish_x86-64 //for stockfish eval x86
+        │
+        ├─images //store imges for piece
+        ├─images2 //easter eggs
+        ├─NNUE model
+        │      duck-ba21f91f5d81.nnue //model for nnue
 ```
 ### 待修復的bug
 1. 鴨子開場會直接擺在e4，嚴重歧視王兵玩家 (已解決)
-2. 理論上鴨子棋沒有將死一說，勝利條件只有把對面的王吃掉，目前的遊戲結束邏輯仍然是判斷對面的王有沒有被將死，這部分需要更改
-3. AI實力有些薄弱，可能需要nerf玩家 (強度已有提升，將規則改好之後可能會強更多)
-4. 若是故意攻擊AI並且拿鴨子擋著攻擊線路，AI會自己把鴨子拿走然後我們可以直接吃王
+2. 理論上鴨子棋沒有將死一說，勝利條件只有把對面的王吃掉，目前的遊戲結束邏輯仍然是判斷對面的王有沒有被將死，這部分需要更改 (已解決)
+3. AI實力有些薄弱，可能需要nerf玩家 (強度已有提升，將規則改好之後可能會強更多) (已解決)
 
 ### 參考
 來自這位兄弟的原版西洋棋引擎: [chess-engine](<https://github.com/mikolaj-skrzypczak/chess-engine.git> "Title")

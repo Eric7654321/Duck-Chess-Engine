@@ -655,7 +655,7 @@ def output_result(results, player_one, player_two):
 
         result_dir = os.path.join(os.path.dirname(__file__), "..", "results")
         os.makedirs(result_dir, exist_ok=True)
-        filename = os.path.join(result_dir, f"{player_one}vs{player_two}.png")
+        filename = os.path.join(result_dir, f"{player_one}_vs_{player_two}.svg")
 
         plt.tight_layout()
         plt.savefig(filename)
@@ -678,13 +678,13 @@ def run_parallel_games(player_one, player_two, num_games=100, num_workers=4):
 
 if __name__ == "__main__":
     # 'human', 'ai_random', 'ai_handcraft', 'ai_nnue'
-    player_one = "human"
-    player_two = "ai_nnue"
+    player_one = "ai_nnue"
+    player_two = "ai_random"
 
     # to run the testing(DO NOT use human here)
-    # run_parallel_games(
-    #     player_one, player_two, num_games=100, num_workers=cpu_count() // 2
-    # )
+    run_parallel_games(
+        player_one, player_two, num_games=100, num_workers=cpu_count() // 2
+    )
 
     # to run the game
-    main(player_one, player_two, visualize_game=True)
+    #main(player_one, player_two, visualize_game=True)
