@@ -207,9 +207,9 @@ def scoreBoard(game_state):
     Now considers duck position in evaluation.
     """
     if game_state.game_over:
-        if game_state.winner == 'w':
+        if game_state.winner == "w":
             return CHECKMATE
-        elif game_state.winner == 'b':
+        elif game_state.winner == "b":
             return -CHECKMATE
         else:
             return STALEMATE  # 平局

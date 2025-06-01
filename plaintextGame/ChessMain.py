@@ -89,16 +89,14 @@ def run_ai_vs_ai(game_state, player_one, player_two):
         winner_type = player_one
         loser_type = player_two
         print(
-            f"White ({winner_type}) wins over Black ({loser_type}) by capturing the king!"
-        )
+            f"White ({winner_type}) wins over Black ({loser_type}) by capturing the king!")
     elif game_state.winner == "b":
         winner_color = "Black"
         loser_color = "White"
         winner_type = player_two
         loser_type = player_one
         print(
-            f"Black ({winner_type}) wins over White ({loser_type}) by capturing the king!"
-        )
+            f"Black ({winner_type}) wins over White ({loser_type}) by capturing the king!")
     else:
         print("Game ended in a draw.")
 
@@ -247,7 +245,8 @@ def main(player_one, player_two, visualize_game=True):
 
                 if current_player == "ai_random":
                     move_finder_process = Process(
-                        target=ChessAI.findRandomMove, args=(valid_moves, return_queue))
+                        target=ChessAI.findRandomMove, args=(
+                            valid_moves, return_queue))
                 elif current_player == "ai_handcraft":
                     move_finder_process = Process(
                         target=chessAi_handcraft.findBestMove,
@@ -261,7 +260,8 @@ def main(player_one, player_two, visualize_game=True):
                 else:
                     raise NameError("no such ai")
                     move_finder_process = Process(
-                        target=ChessAI.findRandomMove, args=(valid_moves, return_queue))
+                        target=ChessAI.findRandomMove, args=(
+                            valid_moves, return_queue))
                 move_finder_process.start()
 
             if not move_finder_process.is_alive():
@@ -604,11 +604,15 @@ def output_result(results, player_one, player_two):
     num_games = len(results)
     print(f"Out of {num_games} games:")
     print(
-        f"White ({player_one}) wins: {counts['White']} ({counts['White'] /num_games:.2%})"
-    )
+        f"White ({player_one}) wins: {
+            counts['White']} ({
+            counts['White'] /
+            num_games:.2%})")
     print(
-        f"Black ({player_two}) wins: {counts['Black']} ({counts['Black'] /num_games:.2%})"
-    )
+        f"Black ({player_two}) wins: {
+            counts['Black']} ({
+            counts['Black'] /
+            num_games:.2%})")
     print(f"Draws: {counts['Draw']} ({counts['Draw'] / num_games:.2%})")
     print(f"Over 200 moves: {counts['over200']}")
 
@@ -617,14 +621,12 @@ def output_result(results, player_one, player_two):
         # Create the plot
         plt.figure(figsize=(12, 6))
         plt.plot(
-            range(
-                1,
-                len(averages) +
-            1),
+            range(1, len(averages) + 1),
             averages,
             marker="o",
             linestyle="-",
-            linewidth=1)
+            linewidth=1,
+        )
 
         # Titles and labels
         plt.title(
@@ -639,10 +641,17 @@ def output_result(results, player_one, player_two):
         plt.text(
             0.01,
             0.95,
-            f"White({player_one}) Winrate: {counts['White'] /num_games:.1%}\nBlack({player_two}) Winrate: {counts['Black'] /num_games:.1%}",
+            f"White({player_one}) Winrate: {
+                counts['White'] /
+                num_games:.1%}\nBlack({player_two}) Winrate: {
+                counts['Black'] /
+                num_games:.1%}",
             transform=plt.gca().transAxes,
             fontsize=10,
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+            bbox=dict(
+                boxstyle="round",
+                facecolor="white",
+                alpha=0.7),
         )
 
         result_dir = os.path.join(os.path.dirname(__file__), "..", "results")

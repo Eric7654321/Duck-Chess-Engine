@@ -28,7 +28,7 @@ class GameState:
         # 鴨子初始化
         self.duck_location = (2, 7)  # 中心位置
         assert (
-                self.board[self.duck_location[0]][self.duck_location[1]] == "--"
+            self.board[self.duck_location[0]][self.duck_location[1]] == "--"
         ), "鴨子初始位置已被佔用！"
         self.board[self.duck_location[0]][self.duck_location[1]] = "DD"
         self.duck_location_log = [self.duck_location]
@@ -141,7 +141,7 @@ class GameState:
                 self.duck_move_phase = False
 
             # 50 steps
-            if move.is_capture or move.piece_moved[1] == 'p':
+            if move.is_capture or move.piece_moved[1] == "p":
                 self.no_progress_count = 0
             else:
                 self.no_progress_count += 1
@@ -303,9 +303,15 @@ class GameState:
 
             # 添加城堡移动 - 修复入堡功能
             if self.white_to_move:
-                self.getCastleMoves(self.white_king_location[0], self.white_king_location[1], moves)
+                self.getCastleMoves(
+                    self.white_king_location[0],
+                    self.white_king_location[1],
+                    moves)
             else:
-                self.getCastleMoves(self.black_king_location[0], self.black_king_location[1], moves)
+                self.getCastleMoves(
+                    self.black_king_location[0],
+                    self.black_king_location[1],
+                    moves)
 
             return moves
 
@@ -322,9 +328,12 @@ class GameState:
                 piece_type = self.board[row][col][1]
 
                 # Skip empty squares, duck, and opponent pieces
-                if piece_color == "-" or piece_type == "D" or \
-                        (piece_color == "w" and not self.white_to_move) or \
-                        (piece_color == "b" and self.white_to_move):
+                if (
+                    piece_color == "-"
+                    or piece_type == "D"
+                    or (piece_color == "w" and not self.white_to_move)
+                    or (piece_color == "b" and self.white_to_move)
+                ):
                     continue
 
                 # Generate moves for this piece (skip duck)
@@ -348,15 +357,32 @@ class GameState:
         if self.board[row + direction][col] == "--":
             if (row + direction, col) != self.duck_location:
                 # Check promotion
-                if (row + direction == 0 and self.white_to_move) or (row + direction == 7 and not self.white_to_move):
-                    moves.append(Move((row, col), (row + direction, col), self.board, is_pawn_promotion=True))
+                if (row + direction == 0 and self.white_to_move) or (
+                    row + direction == 7 and not self.white_to_move
+                ):
+                    moves.append(
+                        Move(
+                            (row, col),
+                            (row + direction, col),
+                            self.board,
+                            is_pawn_promotion=True,
+                        )
+                    )
                 else:
-                    moves.append(Move((row, col), (row + direction, col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (row + direction, col), self.board))
 
                 # Move forward two squares
-                if row == start_row and self.board[row + 2*direction][col] == "--":
-                    if (row + 2*direction, col) != self.duck_location and (row + direction, col) != self.duck_location:
-                        moves.append(Move((row, col), (row + 2*direction, col), self.board))
+                if row == start_row and self.board[row +
+                                                   2 * direction][col] == "--":
+                    if (row + 2 * direction, col) != self.duck_location and (
+                        row + direction,
+                        col,
+                    ) != self.duck_location:
+                        moves.append(
+                            Move(
+                                (row, col), (row + 2 * direction, col), self.board))
 
         # Capture diagonally
         for d_col in [-1, 1]:
@@ -371,20 +397,42 @@ class GameState:
                 # Normal capture
                 if self.board[end_row][end_col][0] == enemy_color:
                     # Check promotion
-                    if (end_row == 0 and self.white_to_move) or (end_row == 7 and not self.white_to_move):
-                        moves.append(Move((row, col), (end_row, end_col), self.board, is_pawn_promotion=True))
+                    if (end_row == 0 and self.white_to_move) or (
+                        end_row == 7 and not self.white_to_move
+                    ):
+                        moves.append(
+                            Move(
+                                (row, col),
+                                (end_row, end_col),
+                                self.board,
+                                is_pawn_promotion=True,
+                            )
+                        )
                     else:
-                        moves.append(Move((row, col), (end_row, end_col), self.board))
+                        moves.append(
+                            Move(
+                                (row, col), (end_row, end_col), self.board))
 
                 # En passant capture
                 if (end_row, end_col) == self.enpassant_possible:
                     # Make sure path isn't blocked by duck
-                    if (row, end_col) != self.duck_location and (end_row, end_col) != self.duck_location:
-                        moves.append(Move((row, col), (end_row, end_col), self.board, is_enpassant_move=True))
+                    if (row, end_col) != self.duck_location and (
+                        end_row,
+                        end_col,
+                    ) != self.duck_location:
+                        moves.append(
+                            Move(
+                                (row, col),
+                                (end_row, end_col),
+                                self.board,
+                                is_enpassant_move=True,
+                            )
+                        )
 
     def getRookMoves(self, row, col, moves):
         """Get all rook moves considering duck blocking"""
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, down, left, right
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)
+                      ]  # Up, down, left, right
         ally_color = "w" if self.white_to_move else "b"
 
         for dr, dc in directions:
@@ -404,10 +452,14 @@ class GameState:
 
                 # Empty square is valid
                 if end_piece == "--":
-                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (end_row, end_col), self.board))
                 # Capture enemy piece
                 elif end_piece[0] != ally_color:
-                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (end_row, end_col), self.board))
                     break  # Can't jump over enemy pieces
                 # Ally piece blocks
                 else:
@@ -416,8 +468,14 @@ class GameState:
     def getKnightMoves(self, row, col, moves):
         """Get all knight moves (can jump over duck)"""
         knight_moves = [
-            (-2, -1), (-2, 1), (-1, -2), (-1, 2),
-            (1, -2), (1, 2), (2, -1), (2, 1)
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
         ]
         ally_color = "w" if self.white_to_move else "b"
 
@@ -433,7 +491,9 @@ class GameState:
                 end_piece = self.board[end_row][end_col]
                 # Valid if empty or enemy piece
                 if end_piece == "--" or end_piece[0] != ally_color:
-                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (end_row, end_col), self.board))
 
     def getBishopMoves(self, row, col, moves):
         """Get all bishop moves considering duck blocking"""
@@ -457,10 +517,14 @@ class GameState:
 
                 # Empty square is valid
                 if end_piece == "--":
-                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (end_row, end_col), self.board))
                 # Capture enemy piece
                 elif end_piece[0] != ally_color:
-                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (end_row, end_col), self.board))
                     break  # Can't jump over enemy pieces
                 # Ally piece blocks
                 else:
@@ -474,9 +538,14 @@ class GameState:
     def getKingMoves(self, row, col, moves):
         """Get all king moves (can't move to duck position)"""
         king_moves = [
-            (-1, -1), (-1, 0), (-1, 1),
-            (0, -1),           (0, 1),
-            (1, -1),  (1, 0),  (1, 1)
+            (-1, -1),
+            (-1, 0),
+            (-1, 1),
+            (0, -1),
+            (0, 1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
         ]
         ally_color = "w" if self.white_to_move else "b"
 
@@ -492,39 +561,57 @@ class GameState:
                 end_piece = self.board[end_row][end_col]
                 # Valid if empty or enemy piece
                 if end_piece == "--" or end_piece[0] != ally_color:
-                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                    moves.append(
+                        Move(
+                            (row, col), (end_row, end_col), self.board))
 
     def getCastleMoves(self, row, col, moves):
         """Generate valid castle moves considering duck blocking"""
         # Kingside castle
-        if (self.white_to_move and self.current_castling_rights.wks) or \
-                (not self.white_to_move and self.current_castling_rights.bks):
+        if (self.white_to_move and self.current_castling_rights.wks) or (
+            not self.white_to_move and self.current_castling_rights.bks
+        ):
             self.getKingsideCastleMoves(row, col, moves)
 
         # Queenside castle
-        if (self.white_to_move and self.current_castling_rights.wqs) or \
-                (not self.white_to_move and self.current_castling_rights.bqs):
+        if (self.white_to_move and self.current_castling_rights.wqs) or (
+            not self.white_to_move and self.current_castling_rights.bqs
+        ):
             self.getQueensideCastleMoves(row, col, moves)
 
     def getKingsideCastleMoves(self, row, col, moves):
         """Kingside castle - duck aware"""
         # Check if path is clear and not blocked by duck
-        if self.board[row][col+1] == "--" and self.board[row][col+2] == "--":
+        if self.board[row][col +
+                           1] == "--" and self.board[row][col +
+                                                          2] == "--":
             # Check duck isn't blocking
-            if (row, col+1) != self.duck_location and (row, col+2) != self.duck_location:
+            if (row, col + 1) != self.duck_location and (
+                row,
+                col + 2,
+            ) != self.duck_location:
                 # Check rook is in place
-                if self.board[row][col+3][1] == "R":
-                    moves.append(Move((row, col), (row, col+2), self.board, is_castle_move=True))
+                if self.board[row][col + 3][1] == "R":
+                    moves.append(Move((row, col), (row, col + 2),
+                                      self.board, is_castle_move=True))
 
     def getQueensideCastleMoves(self, row, col, moves):
         """Queenside castle - duck aware"""
         # Check if path is clear and not blocked by duck
-        if self.board[row][col-1] == "--" and self.board[row][col-2] == "--" and self.board[row][col-3] == "--":
+        if (
+            self.board[row][col - 1] == "--"
+            and self.board[row][col - 2] == "--"
+            and self.board[row][col - 3] == "--"
+        ):
             # Check duck isn't blocking
-            if (row, col-1) != self.duck_location and (row, col-2) != self.duck_location:
+            if (row, col - 1) != self.duck_location and (
+                row,
+                col - 2,
+            ) != self.duck_location:
                 # Check rook is in place
-                if self.board[row][col-4][1] == "R":
-                    moves.append(Move((row, col), (row, col-2), self.board, is_castle_move=True))
+                if self.board[row][col - 4][1] == "R":
+                    moves.append(Move((row, col), (row, col - 2),
+                                      self.board, is_castle_move=True))
 
     def getDuckMoves(self):
         """Duck can teleport to any empty square"""
@@ -534,13 +621,18 @@ class GameState:
         for row in range(8):
             for col in range(8):
                 # Can move to any empty square except current position
-                if self.board[row][col] == "--" and (row, col) != (current_row, current_col):
-                    moves.append(Move(
-                        (current_row, current_col),
-                        (row, col),
-                        self.board,
-                        is_duck_move=True
-                    ))
+                if self.board[row][col] == "--" and (row, col) != (
+                    current_row,
+                    current_col,
+                ):
+                    moves.append(
+                        Move(
+                            (current_row, current_col),
+                            (row, col),
+                            self.board,
+                            is_duck_move=True,
+                        )
+                    )
 
         return moves
 
@@ -558,13 +650,37 @@ class CastleRights:
 
 
 class Move:
-    ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
+    ranks_to_rows = {
+        "1": 7,
+        "2": 6,
+        "3": 5,
+        "4": 4,
+        "5": 3,
+        "6": 2,
+        "7": 1,
+        "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
-    files_to_cols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
+    files_to_cols = {
+        "a": 0,
+        "b": 1,
+        "c": 2,
+        "d": 3,
+        "e": 4,
+        "f": 5,
+        "g": 6,
+        "h": 7}
     cols_to_files = {v: k for k, v in files_to_cols.items()}
 
-    def __init__(self, start_sq, end_sq, board, is_enpassant_move=False,
-                 is_castle_move=False, is_duck_move=False, is_pawn_promotion=False):
+    def __init__(
+        self,
+        start_sq,
+        end_sq,
+        board,
+        is_enpassant_move=False,
+        is_castle_move=False,
+        is_duck_move=False,
+        is_pawn_promotion=False,
+    ):
         self.start_row = start_sq[0]
         self.start_col = start_sq[1]
         self.end_row = end_sq[0]
@@ -587,7 +703,12 @@ class Move:
         )
 
         # Move ID for comparison
-        self.moveID = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
+        self.moveID = (
+            self.start_row * 1000
+            + self.start_col * 100
+            + self.end_row * 10
+            + self.end_col
+        )
 
     def __eq__(self, other):
         """Override equals method"""
@@ -607,22 +728,33 @@ class Move:
             return "0-0" if self.end_col > self.start_col else "0-0-0"
 
         if self.is_enpassant_move:
-            return (self.getRankFile(self.start_row, self.start_col)[0] + "x" +
-                    self.getRankFile(self.end_row, self.end_col) + " e.p.")
+            return (
+                self.getRankFile(self.start_row, self.start_col)[0]
+                + "x"
+                + self.getRankFile(self.end_row, self.end_col)
+                + " e.p."
+            )
 
         if self.is_capture:
             if self.piece_moved[1] == "p":
-                return (self.cols_to_files[self.start_col] + "x" +
-                        self.getRankFile(self.end_row, self.end_col))
+                return (
+                    self.cols_to_files[self.start_col]
+                    + "x"
+                    + self.getRankFile(self.end_row, self.end_col)
+                )
             else:
-                return (self.piece_moved[1] + "x" +
-                        self.getRankFile(self.end_row, self.end_col))
+                return (
+                    self.piece_moved[1]
+                    + "x"
+                    + self.getRankFile(self.end_row, self.end_col)
+                )
         else:
             if self.piece_moved[1] == "p":
                 return self.getRankFile(self.end_row, self.end_col)
             else:
-                return (self.piece_moved[1] +
-                        self.getRankFile(self.end_row, self.end_col))
+                return self.piece_moved[1] + self.getRankFile(
+                    self.end_row, self.end_col
+                )
 
     def getRankFile(self, row, col):
         """Convert row/col to chess notation (e.g., (0,0) -> 'a8')"""

@@ -289,7 +289,7 @@ def handcraftFindMoveNegaMaxAlphaBeta(
 
 
 def nnueFindMoveNegaMaxAlphaBeta(
-        game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
+    game_state, valid_moves, depth, alpha, beta, turn_multiplier, mode="nnue"
 ):
     global next_move
     top_level = depth == DEPTH
@@ -334,7 +334,7 @@ def nnueFindMoveNegaMaxAlphaBeta(
     if depth == 0:
         try:
             score = evaluate_position_with_fairy_stockfish(game_state)
-        except:
+        except BaseException:
             score = scoreBoard(game_state)  # 备用评估
         return turn_multiplier * score
 
@@ -370,9 +370,9 @@ def scoreBoard(game_state):
     """
     # 检查游戏是否结束（例如王被吃掉）
     if game_state.game_over:
-        if game_state.winner == 'w':
+        if game_state.winner == "w":
             return CHECKMATE
-        elif game_state.winner == 'b':
+        elif game_state.winner == "b":
             return -CHECKMATE
         else:
             return STALEMATE  # 平局
@@ -417,7 +417,9 @@ def evaluate_position_with_fairy_stockfish(game_state):
     # 增加超時處理和備用評估
     try:
         fen = convert_to_fen(game_state)
-        with chess.engine.SimpleEngine.popen_uci(FAIRY_STOCKFISH_PATH, timeout=10) as engine:
+        with chess.engine.SimpleEngine.popen_uci(
+            FAIRY_STOCKFISH_PATH, timeout=10
+        ) as engine:
             # 設定NNUE模型路徑
             engine.configure(
                 {
@@ -429,7 +431,9 @@ def evaluate_position_with_fairy_stockfish(game_state):
 
             # 計算position評分
             board = chess.Board(fen)
-            result = engine.analyse(board, chess.engine.Limit(time=0.5, nodes=1000))
+            result = engine.analyse(
+                board, chess.engine.Limit(
+                    time=0.5, nodes=1000))
             score = result["score"].white().score(mate_score=10000)
 
             if score is None:
@@ -470,11 +474,16 @@ def convert_to_fen(game_state):
     turn = "w" if game_state.white_to_move else "b"
 
     castle_rights = ""
-    if game_state.current_castling_rights.wks: castle_rights += "K"
-    if game_state.current_castling_rights.wqs: castle_rights += "Q"
-    if game_state.current_castling_rights.bks: castle_rights += "k"
-    if game_state.current_castling_rights.bqs: castle_rights += "q"
-    if castle_rights == "": castle_rights = "-"
+    if game_state.current_castling_rights.wks:
+        castle_rights += "K"
+    if game_state.current_castling_rights.wqs:
+        castle_rights += "Q"
+    if game_state.current_castling_rights.bks:
+        castle_rights += "k"
+    if game_state.current_castling_rights.bqs:
+        castle_rights += "q"
+    if castle_rights == "":
+        castle_rights = "-"
 
     en_passant = "-"
     if game_state.enpassant_possible:
